@@ -9,18 +9,37 @@
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 
-  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js"></script>
+  <!-- build:js http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js -->
+  <script crossorigin="anonymous"
+          src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.js"></script>
+  <!-- /build -->
 
   <!-- For the game rules/instructions, I use carousel from Angular UI + Bootstrap -->
-  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
-  <script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-touch.min.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js"></script>
+  <!-- build:css http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css -->
+  <link rel="stylesheet"
+        href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.css">
+  <!-- /build -->
+  <!-- build:js http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-touch.min.js -->
+  <script crossorigin="anonymous"
+          src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-touch.js"></script>
+  <!-- /build -->
+  <!-- build:js http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js -->
+  <script crossorigin="anonymous"
+          src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.js"></script>
+  <!-- /build -->
 
-  <script src="dist/everything.min.js"></script>
+  <!-- build:js dist/everything.min.js -->
+  <script  src="src/gameLogic.js"></script>
+  <script  src="src/game.js"></script>
+  <script  src="src/aiService.js"></script>
+  <!-- /build -->
 
   <script>window.angularTranslationLanguages = ['en', 'zh'];</script>
 
-  <script src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.2.min.js"></script>
+  <!-- build:js http://yoav-zibin.github.io/emulator/dist/turnBasedServices.2.min.js -->
+  <script crossorigin="anonymous"
+          src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.js"></script>
+  <!-- /build -->
 
   <link rel="stylesheet" type="text/css"
         href="http://yoav-zibin.github.io/emulator/main.css">
@@ -28,7 +47,7 @@
 
   <link rel="stylesheet" href="game.css"/>
 </head>
-<div ng-cloak >
+<div ng-cloak>
   <div style="position:absolute; bottom:5px; left: 5px; z-index:10;">
     <span ng-click="isHelpModalShown = true"
           class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
@@ -115,8 +134,8 @@
       <div class='board_col' ng-repeat="col in [0, 1, 2, 3, 4, 5, 6, 7]"
            style="left: {{col * 12.5}}%">
         <!--The image of the piece, if it's in a light square, then the src of the image will be empty-->
-        <img class="piece" ng-show="game.hasPiece(row, col)"
-             ng-src="{{game.getPieceSrc(row, col)}}" alt=""
+        <img class="piece" ng-show="hasPiece(row, col)"
+             ng-src="{{getPieceSrc(row, col)}}" alt=""
              id="{{'img_' + row + '_' + col}}">
       </div>
     </div>

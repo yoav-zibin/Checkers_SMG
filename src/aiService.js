@@ -10,11 +10,14 @@
    *
    * The evaluation function is copied from chinese website http://bit.ly/XTUy5g
    */
-  angular.module('myApp').factory('checkersAiService',
-      ['checkersLogicService', 'alphaBetaService',
-        function (checkersLogicService, alphaBetaService) {
+  // angular.module('myApp').factory('checkersAiService',
+  //     ['checkersLogicService', 'alphaBetaService',
+  //       function (checkersLogicService, alphaBetaService) {
+  angular.module('myApp').factory('aiService',
+      ["gameLogic",
+          function (gameLogic) {
 
-          var CONSTANTS = checkersLogicService.CONSTANTS;
+          var CONSTANTS = gameLogic.CONSTANTS;
 
           /***********************************************************************
            * Heuristic part
@@ -31,8 +34,8 @@
            * @returns {number} the square value.
            */
           function getSquareValue(square, row, col) {
-            if (checkersLogicService.getKind(square) === CONSTANTS.MAN) {
-              if (checkersLogicService.getColor(square) === CONSTANTS.WHITE) {
+            if (gameLogic.getKind(square) === CONSTANTS.MAN) {
+              if (gameLogic.getColor(square) === CONSTANTS.WHITE) {
                 // White
                 if (row === 1) {
                   // Closed to be crowned
@@ -49,7 +52,7 @@
               return 5;
             }
 
-            if (checkersLogicService.getKind(square) === CONSTANTS.KING) {
+            if (gameLogic.getKind(square) === CONSTANTS.KING) {
               // It's a crown
               return 10;
             }
@@ -85,7 +88,7 @@
                 row,
                 col;
 
-            winner = checkersLogicService.getWinner(board, turnIndex);
+            winner = gameLogic.getWinner(board, turnIndex);
 
             if (winner === CONSTANTS.WHITE) {
               return Number.MIN_VALUE;
@@ -106,7 +109,7 @@
                   squareValue = getSquareValue(cell, row, col) *
                       boardWeight[row][col];
 
-                  if (checkersLogicService.getColor(cell) ===
+                  if (gameLogic.getColor(cell) ===
                       CONSTANTS.BLACK) {
                     // BLACK
                     stateValue += squareValue;
@@ -150,24 +153,24 @@
                 i;
 
             hasMandatoryJump =
-                checkersLogicService.hasMandatoryJumps(board, turnIndex);
+                gameLogic.hasMandatoryJumps(board, turnIndex);
 
             // Check each square of the board
             for (row = 0; row < CONSTANTS.ROW; row += 1) {
               for (col = 0; col < CONSTANTS.COLUMN; col += 1) {
-                if (checkersLogicService.isOwnColor(turnIndex,
+                if (gameLogic.isOwnColor(turnIndex,
                         board[row][col].substr(0, 1))) {
                   delta = {row: row, col: col};
 //                squareIndex = parseInt(squareIndex, 10);
 
                   if (hasMandatoryJump) {
                     // If there's any mandatory jumps
-                    possibleMoves = checkersLogicService
+                    possibleMoves = gameLogic
                         .getJumpMoves(board, delta, turnIndex);
                   } else {
                     // If there's no mandatory jump,
                     // then check the possible simple move
-                    possibleMoves = checkersLogicService
+                    possibleMoves = gameLogic
                         .getSimpleMoves(board, delta, turnIndex);
                   }
 
@@ -190,7 +193,7 @@
             var allPossibleMoves = [];
 
             for (var i = 0; i < allPossibleMoveDeltas.length; i++) {
-              allPossibleMoves[i] = checkersLogicService.createMove(angular.copy(board),
+              allPossibleMoves[i] = gameLogic.createMove(angular.copy(board),
                   allPossibleMoveDeltas[i][0], allPossibleMoveDeltas[i][1],
                   playerIndex);
             }

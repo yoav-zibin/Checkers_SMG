@@ -1,5 +1,5 @@
-(function () {
-  "use strict";
+ (function () {
+   "use strict";
   /*global angular */
 
   /**
@@ -61,8 +61,12 @@
    *       {set: {key: 'toDelta', value: {row: 3, col: 0}}}
    *      ]
    */
-  angular.module('myApp', ['ngTouch', 'ui.bootstrap']).factory('checkersLogicService',
-      [function () {
+  // angular.module('myApp', ['ngTouch', 'ui.bootstrap']).factory('checkersLogicService',
+  //     [function () {
+  angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
+  .factory('gameLogic', function() {
+
+      'use strict';
 
           // This is a simple implementation for constant and enum, so the value
           // can be changed. Since this is a small personal project, all caps
@@ -1259,5 +1263,5 @@
             getInitialBoard: getInitialBoard,
             CONSTANTS: CONSTANTS
           };
-        }]);
-}());
+        });
+ }());

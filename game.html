@@ -29,16 +29,20 @@
   <!-- /build -->
 
   <!-- build:js dist/everything.min.js -->
-  <script crossorigin="anonymous" src="src/gameLogic.js"></script>
-  <script crossorigin="anonymous" src="src/game.js"></script>
-  <script crossorigin="anonymous" src="src/aiService.js"></script>
+  <!-- <script   src="src/gameLogic.js"></script>
+  <script   src="src/game.js"></script>
+  <script   src="src/aiService.js"></script> -->
+  <script  src="ts_output_readonly_do_NOT_change_manually/src/gameLogic.js"></script>
+  <script  src="ts_output_readonly_do_NOT_change_manually/src/game.js"></script>
+  <script  src="ts_output_readonly_do_NOT_change_manually/src/aiService.js"></script>
+
   <!-- /build -->
 
   <script>window.angularTranslationLanguages = ['en', 'zh'];</script>
 
   <!-- build:js http://yoav-zibin.github.io/emulator/dist/turnBasedServices.2.min.js -->
   <script crossorigin="anonymous"
-          src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.2.js"></script>
+          src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.js"></script>
   <!-- /build -->
 
   <link rel="stylesheet" type="text/css"
@@ -47,7 +51,7 @@
 
   <link rel="stylesheet" href="game.css"/>
 </head>
-<div ng-cloak ng-controller="CheckersCtrl">
+<div ng-cloak >
   <div style="position:absolute; bottom:5px; left: 5px; z-index:10;">
     <span ng-click="isHelpModalShown = true"
           class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
@@ -134,8 +138,8 @@
       <div class='board_col' ng-repeat="col in [0, 1, 2, 3, 4, 5, 6, 7]"
            style="left: {{col * 12.5}}%">
         <!--The image of the piece, if it's in a light square, then the src of the image will be empty-->
-        <img class="piece" ng-show="hasPiece(row, col)"
-             ng-src="{{getPieceSrc(row, col)}}" alt=""
+        <img class="piece" ng-show="game.hasPiece(row, col)"
+             ng-src="{{game.getPieceSrc(row, col)}}" alt=""
              id="{{'img_' + row + '_' + col}}">
       </div>
     </div>

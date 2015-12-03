@@ -1,22 +1,40 @@
 /**
  * This is the controller for Checkers.
  */
+// angular.module('myApp')
+//     .controller('CheckersCtrl',
+//     ['$scope', '$log', '$timeout', '$translate',
+//       'gameService', 'stateService',
+//       'checkersLogicService', 'checkersAiService',
+//       'resizeGameAreaService', 'dragAndDropService',
+//       function ($scope, $log, $timeout, $translate,
+//                 gameService, stateService,
+//                 checkersLogicService, checkersAiService,
+//                 resizeGameAreaService, dragAndDropService) {
+//
+//         'use strict';
+//
+//         console.log("Translation of 'RULES_OF_TICTACTOE' is " + $translate('RULES_OF_CHECKERS'));
 angular.module('myApp')
-    .controller('CheckersCtrl',
-    ['$scope', '$log', '$timeout', '$translate',
-      'gameService', 'stateService',
-      'checkersLogicService', 'checkersAiService',
-      'resizeGameAreaService', 'dragAndDropService',
-      function ($scope, $log, $timeout, $translate,
-                gameService, stateService,
-                checkersLogicService, checkersAiService,
-                resizeGameAreaService, dragAndDropService) {
+  .run(
+    ['gameLogic',
+        'aiService',
+        function (gameLogic,
+                  aiService) {
 
-        'use strict';
-
-        console.log("Translation of 'RULES_OF_TICTACTOE' is " + $translate('RULES_OF_CHECKERS'));
-
-        var CONSTANTS = checkersLogicService.CONSTANTS;
+            'use strict';
+translate.setLanguage('en',{
+  "RULES_OF_CHECKERS":"Rules of Checkers",
+  "RULES_SLIDE1":"Uncrowned pieces move one step diagonally forward and capture an opponent's piece by moving two consecutive steps in the same line, jumping over the piece on the first step. Multiple opposing pieces may be captured in a single turn provided this is done by successive jumps made by a single piece; the jumps do not need to be in the same line but may \"zigzag\" (change diagonal direction).",
+  "RULES_SLIDE2":"When a man reaches the kings row (the farthest row forward), it becomes a king, and acquires additional powers including the ability to move backwards (and capture backwards). As with non-king men, a king may make successive jumps in a single turn provided that each jump captures an opponent man or king.",
+  "RULES_SLIDE3":"Capturing is mandatory.",
+  "RULES_SLIDE4":"The player without pieces remaining, or who cannot move due to being blocked, loses the game.",
+  "CLOSE":"Close"
+});
+        var $log = log;
+        var $translate = translate;
+        var $scope = $rootScope;
+        var CONSTANTS = gameLogic.CONSTANTS;
         var gameArea = document.getElementById("gameArea");
         var hasMadeMove = false;
 
@@ -133,7 +151,7 @@ angular.module('myApp')
          * Check if the piece in the delta position has the own color.
          */
         function isOwnColor(delta) {
-          return checkersLogicService.isOwnColor($scope.yourPlayerIndex, $scope.board[delta.row][delta.col].substring(0, 1));
+          return gameLogic.isOwnColor($scope.yourPlayerIndex, $scope.board[delta.row][delta.col].substring(0, 1));
         }
 
         /**
@@ -191,18 +209,18 @@ angular.module('myApp')
           var delta = {row: row, col: col};
           var rotatedDelta = rotate(delta);
 
-          if (!$scope.isDarkCell(row, col) || !checkersLogicService.isOwnColor($scope.yourPlayerIndex, $scope.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
+          if (!$scope.isDarkCell(row, col) || !gameLogic.isOwnColor($scope.yourPlayerIndex, $scope.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
           }
 
-          var hasMandatoryJump = checkersLogicService.hasMandatoryJumps($scope.board, $scope.yourPlayerIndex);
+          var hasMandatoryJump = gameLogic.hasMandatoryJumps($scope.board, $scope.yourPlayerIndex);
           var possibleMoves;
 
           if (hasMandatoryJump) {
-            possibleMoves = checkersLogicService
+            possibleMoves = gameLogic
                 .getJumpMoves($scope.board, rotatedDelta, $scope.yourPlayerIndex);
           } else {
-            possibleMoves = checkersLogicService
+            possibleMoves = gameLogic
                 .getSimpleMoves($scope.board, rotatedDelta, $scope.yourPlayerIndex);
           }
 
@@ -295,7 +313,7 @@ angular.module('myApp')
           var operations;
 
           try {
-            operations = checkersLogicService.createMove(angular.copy($scope.board),
+            operations = gameLogic.createMove(angular.copy($scope.board),
                 fromDelta, toDelta, $scope.yourPlayerIndex);
           } catch (e) {
             return;
@@ -397,7 +415,7 @@ angular.module('myApp')
          */
         var initial = function () {
           try {
-            var move = checkersLogicService.getFirstMove();
+            var move = gameLogic.getFirstMove();
             gameService.makeMove(move);
           } catch (e) {
             $log.info(e);
@@ -416,7 +434,7 @@ angular.module('myApp')
           gameDeveloperEmail: "yl1949@nyu.edu",
           minNumberOfPlayers: 2,
           maxNumberOfPlayers: 2,
-          isMoveOk: checkersLogicService.isMoveOk,
+          isMoveOk: gameLogic.isMoveOk,
           updateUI: updateUI
         });
       }]);
