@@ -315,7 +315,6 @@ var gameLogic;
             emailBody: getIllegalEmailBody(illegalCode)
         };
     }
-    gameLogic.getIllegalEmailObj = getIllegalEmailObj;
     /**
      * Get the to square delta (the destination of the move) according to
      * the move type and direction.
@@ -918,14 +917,19 @@ var gameLogic;
         if (isEmptyObj(stateBeforeMove)) {
             return angular.equals(move, getFirstMove());
         }
-        // If the move length is not 4, it's illegal
-        if (move.length !== 4) {
-            return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_MOVE);
-        }
+        //
+        // // If the move length is not 4, it's illegal
+        // if (move.length !== 4) {
+        //   return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_MOVE);
+        // }
         /*********************************************************************
          * 2. Compare the expected move and the player's move.
          ********************************************************************/
         try {
+            // If the move length is not 4, it's illegal
+            if (move.length !== 4) {
+                throw new Error("Illegal Move: move length is not 4");
+            }
             /*
              * Example move:
              * [
@@ -955,40 +959,15 @@ var gameLogic;
             //   console.log(JSON.stringify(expectedMove));
             //   console.log(angular.equals(move, expectedMove));
             // }
-            if (!angular.equals(move, expectedMove)) {
-                return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_MOVE);
+            if (angular.equals(move, expectedMove)) {
+                return true;
             }
         }
         catch (e) {
             // if there are any exceptions then the move is illegal
-            //            console.log('Erorr: ' + e.message);
-            switch (e.message) {
-                case ILLEGAL_CODE.ILLEGAL_MOVE:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_MOVE);
-                case ILLEGAL_CODE.ILLEGAL_SIMPLE_MOVE:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_SIMPLE_MOVE);
-                case ILLEGAL_CODE.ILLEGAL_JUMP_MOVE:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_JUMP_MOVE);
-                case ILLEGAL_CODE.ILLEGAL_DELTA:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_DELTA);
-                case ILLEGAL_CODE.ILLEGAL_COLOR_CHANGED:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_COLOR_CHANGED);
-                case ILLEGAL_CODE.ILLEGAL_CROWNED:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_CROWNED);
-                case ILLEGAL_CODE.ILLEGAL_UNCROWNED:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_UNCROWNED);
-                case ILLEGAL_CODE.ILLEGAL_IGNORE_MANDATORY_JUMP:
-                    return getIllegalEmailObj(ILLEGAL_CODE
-                        .ILLEGAL_IGNORE_MANDATORY_JUMP);
-                case ILLEGAL_CODE.ILLEGAL_SET_TURN:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_SET_TURN);
-                case ILLEGAL_CODE.ILLEGAL_END_MATCH_SCORE:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_END_MATCH_SCORE);
-                default:
-                    return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_CODE);
-            }
+            return false;
         }
-        return true;
+        return false;
     }
     gameLogic.isMoveOk = isMoveOk;
     /**
@@ -1018,7 +997,7 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
         hasMandatoryJumps: gameLogic.hasMandatoryJumps,
         getJumpedDelta: gameLogic.getJumpedDelta,
         isOwnColor: gameLogic.isOwnColor,
-        getIllegalEmailObj: gameLogic.getIllegalEmailObj,
+        //  getIllegalEmailObj: gameLogic.getIllegalEmailObj,
         getWinner: gameLogic.getWinner,
         getColor: gameLogic.getColor,
         getKind: gameLogic.getKind,
