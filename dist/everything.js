@@ -997,7 +997,6 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
         hasMandatoryJumps: gameLogic.hasMandatoryJumps,
         getJumpedDelta: gameLogic.getJumpedDelta,
         isOwnColor: gameLogic.isOwnColor,
-        //  getIllegalEmailObj: gameLogic.getIllegalEmailObj,
         getWinner: gameLogic.getWinner,
         getColor: gameLogic.getColor,
         getKind: gameLogic.getKind,
@@ -1011,22 +1010,18 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
 ;var game;
 (function (game) {
     var animationEnded = false;
-    var canMakeMove = false;
     var isComputerTurn = false;
+    var canMakeMove = false;
     game.isHelpModalShown = false;
     var CONSTANTS = gameLogic.CONSTANTS;
     var gameArea = null;
-    var hasMadeMove = false;
     // Global variables for drag-n-drop and ai move animations
     var dndStartPos = null;
     var dndElem = null;
     var aiMoveDeltas = null;
     var board = null;
     var shouldRotateBoard = false;
-    var yourPlayerIndex = null;
-    var playersInfo = null;
     var turnIndex = null;
-    var isYourTurn = false;
     /**
      * Send initial move
      */
@@ -1070,7 +1065,6 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
      * @param params
      */
     function updateUI(params) {
-        hasMadeMove = false;
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
         if (params.playMode === "playBlack") {
@@ -1080,8 +1074,7 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
             shouldRotateBoard = false;
         }
         // Get the new state
-        yourPlayerIndex = params.yourPlayerIndex;
-        playersInfo = params.playersInfo;
+        turnIndex = params.yourPlayerIndex;
         board = params.stateAfterMove.board;
         // // White player initialize the game if the board is empty.
         if (isUndefinedOrNull(board) && params.yourPlayerIndex === 0) {
@@ -1089,16 +1082,15 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
             return;
         }
         // It's your move. (For the current browser...)
-        isYourTurn = params.turnIndexAfterMove >= 0 &&
+        canMakeMove = params.turnIndexAfterMove >= 0 &&
             params.yourPlayerIndex === params.turnIndexAfterMove;
-        canMakeMove = isYourTurn;
         //
         // // You're a human player
-        var isPlayerMove = isYourTurn &&
+        var isPlayerMove = canMakeMove &&
             params.playersInfo[params.yourPlayerIndex].playerId !== '';
         isComputerTurn = isPlayerMove;
         // You're an AI player
-        var isAiMove = isYourTurn &&
+        var isAiMove = canMakeMove &&
             params.playersInfo[params.yourPlayerIndex].playerId === '';
         if (!isUndefinedOrNull(aiMoveDeltas)) {
             playAnimation(aiMoveDeltas.from, aiMoveDeltas.to, false, function () {
@@ -1186,13 +1178,13 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
     function makeMove(fromDelta, toDelta) {
         var operations;
         try {
-            operations = gameLogic.createMove(angular.copy(board), fromDelta, toDelta, yourPlayerIndex);
+            operations = gameLogic.createMove(angular.copy(board), fromDelta, toDelta, turnIndex);
         }
         catch (e) {
             return;
         }
-        if (!hasMadeMove) {
-            hasMadeMove = true;
+        if (canMakeMove) {
+            canMakeMove = false;
             gameService.makeMove(operations);
         }
     }
@@ -1203,7 +1195,7 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
      */
     function aiMakeMove() {
         var bestMove, timeLimit = 1000;
-        bestMove = aiService.createComputerMove(board, yourPlayerIndex, 
+        bestMove = aiService.createComputerMove(board, turnIndex, 
         // 1 seconds for the AI to choose a move
         { millisecondsLimit: timeLimit });
         // Instead of making the move directly, use makeMove function instead.
@@ -1316,7 +1308,7 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
             dndStartPos = angular.copy(delta);
             // If a piece is dragged, store the piece element
             if (hasPiece(delta.row, delta.col) &&
-                isYourTurn &&
+                canMakeMove &&
                 isOwnColor(rotatedDelta)) {
                 dndElem = document.getElementById("img_" + dndStartPos.row + "_" + dndStartPos.col);
             }
@@ -1350,7 +1342,7 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
      * Check if the piece in the delta position has the own color.
      */
     function isOwnColor(delta) {
-        return gameLogic.isOwnColor(yourPlayerIndex, board[delta.row][delta.col].substring(0, 1));
+        return gameLogic.isOwnColor(turnIndex, board[delta.row][delta.col].substring(0, 1));
     }
     /**
      * Check if the piece can be dragged.
@@ -1358,18 +1350,18 @@ angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
     function canDrag(row, col) {
         var delta = { row: row, col: col };
         var rotatedDelta = rotate(delta);
-        if (!isDarkCell(row, col) || !gameLogic.isOwnColor(yourPlayerIndex, board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
+        if (!isDarkCell(row, col) || !gameLogic.isOwnColor(turnIndex, board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
         }
-        var hasMandatoryJump = gameLogic.hasMandatoryJumps(board, yourPlayerIndex);
+        var hasMandatoryJump = gameLogic.hasMandatoryJumps(board, turnIndex);
         var possibleMoves;
         if (hasMandatoryJump) {
             possibleMoves = gameLogic
-                .getJumpMoves(board, rotatedDelta, yourPlayerIndex);
+                .getJumpMoves(board, rotatedDelta, turnIndex);
         }
         else {
             possibleMoves = gameLogic
-                .getSimpleMoves(board, rotatedDelta, yourPlayerIndex);
+                .getSimpleMoves(board, rotatedDelta, turnIndex);
         }
         return possibleMoves.length > 0;
     }

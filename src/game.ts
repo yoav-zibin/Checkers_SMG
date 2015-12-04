@@ -8,29 +8,31 @@ interface TopLeft {
   left: number;
 }
 
+interface MoveDeltas {
+  from: BoardDelta;
+  to: BoardDelta;
+}
+
 
 module game {
   let animationEnded = false;
-  let canMakeMove = false;
   let isComputerTurn = false;
+  let canMakeMove: boolean = false;
   export let isHelpModalShown: boolean = false;
 
   var CONSTANTS: any = gameLogic.CONSTANTS;
   var gameArea: HTMLElement = null;
-  var hasMadeMove: boolean = false;
 
   // Global variables for drag-n-drop and ai move animations
   var dndStartPos: BoardDelta = null;
   var dndElem: HTMLElement = null;
-  var aiMoveDeltas: any = null;
+  var aiMoveDeltas: MoveDeltas = null;
 
 
   let board: Board = null;
   let shouldRotateBoard: boolean = false;
-  let yourPlayerIndex: number = null;
-  let playersInfo: IPlayerInfo[] = null;
   let turnIndex: number = null;
-  let isYourTurn: boolean = false;
+
 
 
   /**
@@ -83,7 +85,6 @@ module game {
    * @param params
    */
   function updateUI(params: IUpdateUI): void {
-    hasMadeMove = false;
 
     //Rotate the board 180 degrees, hence in the point of current
     //player's view, the board always face towards him/her;
@@ -94,8 +95,7 @@ module game {
     }
 
     // Get the new state
-    yourPlayerIndex = params.yourPlayerIndex;
-    playersInfo = params.playersInfo;
+    turnIndex = params.yourPlayerIndex;
     board = params.stateAfterMove.board;
 
     // // White player initialize the game if the board is empty.
@@ -105,19 +105,18 @@ module game {
     }
 
     // It's your move. (For the current browser...)
-    isYourTurn = params.turnIndexAfterMove >= 0 &&
+    canMakeMove = params.turnIndexAfterMove >= 0 &&
         params.yourPlayerIndex === params.turnIndexAfterMove;
-    canMakeMove = isYourTurn;
     //
     // // You're a human player
-    let isPlayerMove: boolean = isYourTurn &&
+    let isPlayerMove: boolean = canMakeMove &&
         params.playersInfo[params.yourPlayerIndex].playerId !== '';
     isComputerTurn = isPlayerMove;
 
 
 
     // You're an AI player
-    let isAiMove: boolean = isYourTurn &&
+    let isAiMove: boolean = canMakeMove &&
         params.playersInfo[params.yourPlayerIndex].playerId === '';
 
     if (!isUndefinedOrNull(aiMoveDeltas)) {
@@ -213,13 +212,13 @@ module game {
 
     try {
       operations = gameLogic.createMove(angular.copy(board),
-          fromDelta, toDelta, yourPlayerIndex);
+          fromDelta, toDelta, turnIndex);
     } catch (e) {
       return;
     }
 
-    if (!hasMadeMove) {
-      hasMadeMove = true;
+    if (canMakeMove) {
+      canMakeMove = false;
       gameService.makeMove(operations);
     }
   }
@@ -233,7 +232,7 @@ module game {
     var bestMove: IMove,
         timeLimit = 1000;
 
-    bestMove = aiService.createComputerMove(board, yourPlayerIndex,
+    bestMove = aiService.createComputerMove(board, turnIndex,
         // 1 seconds for the AI to choose a move
         {millisecondsLimit: timeLimit});
 
@@ -361,7 +360,7 @@ module game {
 
       // If a piece is dragged, store the piece element
       if (hasPiece(delta.row, delta.col) &&
-          isYourTurn &&
+          canMakeMove &&
           isOwnColor(rotatedDelta)) {
         dndElem = document.getElementById("img_" + dndStartPos.row + "_" + dndStartPos.col);
       }
@@ -399,7 +398,7 @@ module game {
    * Check if the piece in the delta position has the own color.
    */
   function isOwnColor(delta: BoardDelta): boolean {
-    return gameLogic.isOwnColor(yourPlayerIndex, board[delta.row][delta.col].substring(0, 1));
+    return gameLogic.isOwnColor(turnIndex, board[delta.row][delta.col].substring(0, 1));
   }
 
 
@@ -410,19 +409,19 @@ module game {
     var delta: BoardDelta = {row: row, col: col};
     var rotatedDelta: BoardDelta = rotate(delta);
 
-    if (!isDarkCell(row, col) || !gameLogic.isOwnColor(yourPlayerIndex, board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
+    if (!isDarkCell(row, col) || !gameLogic.isOwnColor(turnIndex, board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
       return false;
     }
 
-    var hasMandatoryJump: boolean = gameLogic.hasMandatoryJumps(board, yourPlayerIndex);
+    var hasMandatoryJump: boolean = gameLogic.hasMandatoryJumps(board, turnIndex);
     var possibleMoves: BoardDelta[];
 
     if (hasMandatoryJump) {
       possibleMoves = gameLogic
-          .getJumpMoves(board, rotatedDelta, yourPlayerIndex);
+          .getJumpMoves(board, rotatedDelta, turnIndex);
     } else {
       possibleMoves = gameLogic
-          .getSimpleMoves(board, rotatedDelta, yourPlayerIndex);
+          .getSimpleMoves(board, rotatedDelta, turnIndex);
     }
 
     return possibleMoves.length > 0;

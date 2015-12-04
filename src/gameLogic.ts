@@ -1084,9 +1084,9 @@ module gameLogic {
          */
         // export function isMoveOk(params: IIsMoveOk, debug: any): boolean {
         export function isMoveOk(params: IIsMoveOk): boolean {
-          var stateBeforeMove = params.stateBeforeMove,
-              turnIndexBeforeMove = params.turnIndexBeforeMove,
-              move = params.move,
+          var stateBeforeMove: IState = params.stateBeforeMove,
+              turnIndexBeforeMove: number = params.turnIndexBeforeMove,
+              move: IMove = params.move,
               board: Board,
               fromDelta: BoardDelta,
               toDelta: BoardDelta,
