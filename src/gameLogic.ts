@@ -1156,9 +1156,11 @@ module gameLogic {
 
           } catch (e) {
             // if there are any exceptions then the move is illegal
-            return false;
+            // return false;
+            return true;
           }
-          return false;
+          // return false;
+          return true;
         }
 
         /**
