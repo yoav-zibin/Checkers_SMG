@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<!-- build:[manifest] index.min.appcache -->
+<html lang="en" ng-app="myApp" ng-strict-di>
+<!-- /build -->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Checkers</title>
+  <meta name="description" content="Checkers game">
+  <link rel="shortcut icon"type="image/x-icon" href="data:image/x-icon;,"><!-- Suppress browser request for favicon.ico -->
+
+  <!-- To ensure CSS files are downloaded in parallel, always include external CSS before external JavaScript. -->
+  <!-- build:[href] css/everything.min.css -->
+  <link rel="stylesheet" type="text/css" href="css/game.css">
+  <!-- /build -->
+  <link crossorigin="anonymous" rel="stylesheet" type="text/css" href="http://yoav-zibin.github.io/emulator/main.css">
+
+
+  <!-- build:[href] http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css -->
+  <link crossorigin="anonymous" rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.css">
+  <!-- /build -->
+
+  <!-- The crossorigin attribute controls, for scripts that are obtained from other origins, whether error information will be exposed. -->
+  <!-- build:[src] http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js -->
+  <script crossorigin="anonymous" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.js"></script>
+  <!-- /build -->
+
+  <!-- For the game rules/instructions, I use carousel from Angular UI + Bootstrap + ngTouch for swiping the rules slides. -->
+  <!-- build:[src] http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-touch.min.js -->
+  <script crossorigin="anonymous" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-touch.js"></script>
+  <!-- /build -->
+  <!-- build:[src] http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js -->
+  <script crossorigin="anonymous" src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.js"></script>
+  <!-- /build -->
+
+  <!-- build:[src] http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js -->
+  <script crossorigin="anonymous" src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.js"></script>
+  <!-- /build -->
+
+  <!-- build:js js/everything.min.js -->
+  <script src="ts_output_readonly_do_NOT_change_manually/src/gameLogic.js"></script>
+  <script src="ts_output_readonly_do_NOT_change_manually/src/game.js"></script>
+  <script src="ts_output_readonly_do_NOT_change_manually/src/aiService.js"></script>
+  <!-- /build -->
+
+  <!-- build:remove -->
+  <!-- https://github.com/philipwalton/html-inspector#getting-started -->
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/html-inspector/0.8.2/html-inspector.js"></script>
+  <!-- /build -->
+
+</head>
+<div ng-cloak >
+  <div id="e2e_test_open_rules_modal" class="help-tip" ng-click="game.isHelpModalShown = true" aria-hidden="true"></div>
+
+  <div class="overlayModal" ng-click="game.clickedOnModal($event)"
+      ng-class="{zeroOpacity: !game.isHelpModalShown, oneOpacity: game.isHelpModalShown}" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" ng-click="game.isHelpModalShown = false" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">
+            {{ 'RULES_OF_CHECKERS' | translate }}
+          </h4>
+        </div>
+        <div class="modal-body">
+          <carousel style="height: 150px">
+            <slide>
+              <table>
+                <tr>
+                  <td>
+                    {{ 'RULES_SLIDE1' | translate }}
+                  </td>
+                  <td>
+                    <img src="imgs/white_man.png" alt="Black piece" style="height:60px;">
+                    <img src="imgs/black_man.png" alt="White piece" style="height:60px;">
+                  </td>
+                </tr>
+              </table>
+            </slide>
+            <slide>
+              <table>
+                <tr>
+                  <td>
+                    {{ 'RULES_SLIDE2' | translate }}
+                  </td>
+                  <td>
+                    <img src="imgs/white_cro.png" alt="Black king" style="height:60px;">
+                    <img src="imgs/black_cro.png" alt="White king" style="height:60px;">
+                  </td>
+                </tr>
+              </table>
+            </slide>
+            <slide>
+                {{ 'RULES_SLIDE3' | translate }}
+            </slide>
+            <slide>
+                {{ 'RULES_SLIDE4' | translate }}
+            </slide>
+          </carousel>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" ng-click="game.isHelpModalShown = false">
+            {{ 'CLOSE' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameArea">
+    <img id="board" src="imgs/board.png" alt="Checkers board">
+
+    <div class="board_row" ng-repeat="row in [0, 1, 2, 3, 4, 5, 6, 7]"
+         style="top: {{row * 12.5}}%">
+      <div class='board_col' ng-repeat="col in [0, 1, 2, 3, 4, 5, 6, 7]"
+           style="left: {{col * 12.5}}%">
+        <img ng-if="game.hasPiece(row, col)"
+            ng-class="'piece ' + game.getAnimationClass(row, col)"
+            ng-src="{{game.getPieceSrc(row, col)}}" alt="Checkers piece"
+            id="{{'img_' + row + '_' + col}}">
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

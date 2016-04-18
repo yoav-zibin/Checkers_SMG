@@ -7,22 +7,21 @@ module.exports = function(config) {
     basePath : './',
 
     files : [
-      'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.js',
-      'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-mocks.js',
-      'src/gameLogic.js',
-      'src/gameLogic_test.js',
-      'http://yoav-zibin.github.io/emulator/alphaBetaService.js',
-      'src/aiService.js',
-      //'src/aiService_test.js'
+      'http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.js',
+      'ts_output_readonly_do_NOT_change_manually/src/gameLogic.js',
+      'ts_output_readonly_do_NOT_change_manually/src/aiService.js',
+      'http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.js',
+      'ts_output_readonly_do_NOT_change_manually/src/gameLogic_test.js',
+      'ts_output_readonly_do_NOT_change_manually/src/aiService_test.js'
     ],
 
-    reporters: ['progress', 'coverage'],
+    reporters: ['progress'], // , 'coverage'
 
     preprocessors: {
       // source files, that you wanna generate coverage for
       // do not include tests or libraries
       // (these files will be instrumented by Istanbul)
-      'src/gameLogic.js': ['coverage']
+      'ts_output_readonly_do_NOT_change_manually/src/gameLogic.js': ['coverage']
     },
 
     // optionally, configure the reporter

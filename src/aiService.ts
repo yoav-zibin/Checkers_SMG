@@ -1,6 +1,6 @@
 module aiService {
 
-  var CONSTANTS = gameLogic.CONSTANTS;
+  let CONSTANTS = gameLogic.CONSTANTS;
 
   /***********************************************************************
    * Heuristic part
@@ -53,7 +53,7 @@ module aiService {
    * @returns {*} the board value.
    */
   function getStateValue(board: Board, turnIndex: number): number {
-    var stateValue: number = 0,
+    let stateValue: number = 0,
         winner: string,
     // For different position of the board, there's a different weight.
         boardWeight: number[][] = [
@@ -112,54 +112,55 @@ module aiService {
    */
   function getStateScoreForIndex0(move: IMove, turnIndex: number): number {
     // getStateValue return the score for player 1.
-    return -getStateValue(move[1].set.value, turnIndex);
+    return -getStateValue(move.stateAfterMove.board, turnIndex);
   }
 
 
+  function addMegaJumpMoves(allPossibleMoves: MiniMove[][], board: Board, turnIndex: number, from: BoardDelta) {
+    let possibleMoves = gameLogic.getJumpMoves(board, from, turnIndex);
+    for (let possibleMove of possibleMoves) {
+      let miniMove: MiniMove[] = [];
+      let currentPos = from;
+      let nextPos = possibleMove;
+      let currentBoard = board;
+      // Finishing the jump if there are still mandatory jumps.
+      do {
+        let iMove = gameLogic.createMiniMove(currentBoard, currentPos, nextPos, turnIndex);
+        miniMove.push({fromDelta: currentPos, toDelta: nextPos});
+        // If the turn changes, then there are no more mandatory jumps
+        if (iMove.turnIndexAfterMove !== turnIndex) break;
+        // We need to make another jump: update currentBoard, currentPos, nextPos
+        currentBoard = iMove.stateAfterMove.board;
+        currentPos = nextPos;
+        nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0];
+      } while (true);
+      allPossibleMoves.push(miniMove);
+    }
+  }
   /**
    * Get all possible moves.
-   *
-   * @param board the game API board
-   * @param turnIndex 0 represents the black player and 1
-   *        represents the white player.
-   * @returns {
- *            fromIndex: number,
- *            toIndex: number
- *          }
    */
-  function getAllMoves(board: Board, turnIndex: number): BoardDelta[][] {
-    var allPossibleMoves: BoardDelta[][] = [],
-        hasMandatoryJump: boolean,
-        possibleMoves: BoardDelta[],
-        delta: BoardDelta,
-        row: number,
-        col: number,
-        i: number;
+  function getAllMoves(board: Board, turnIndex: number): MiniMove[][] {
+    let allPossibleMoves: MiniMove[][] = [];
 
-    hasMandatoryJump =
+    let hasMandatoryJump =
         gameLogic.hasMandatoryJumps(board, turnIndex);
 
     // Check each square of the board
-    for (row = 0; row < CONSTANTS.ROW; row += 1) {
-      for (col = 0; col < CONSTANTS.COLUMN; col += 1) {
+    for (let row = 0; row < CONSTANTS.ROW; row += 1) {
+      for (let col = 0; col < CONSTANTS.COLUMN; col += 1) {
         if (gameLogic.isOwnColor(turnIndex,
                 board[row][col].substr(0, 1))) {
-          delta = {row: row, col: col};
-//                squareIndex = parseInt(squareIndex, 10);
-
+          let delta = {row: row, col: col};
           if (hasMandatoryJump) {
-            // If there's any mandatory jumps
-            possibleMoves = gameLogic
-                .getJumpMoves(board, delta, turnIndex);
+            addMegaJumpMoves(allPossibleMoves, board, turnIndex, delta);
           } else {
             // If there's no mandatory jump,
             // then check the possible simple move
-            possibleMoves = gameLogic
-                .getSimpleMoves(board, delta, turnIndex);
-          }
-
-          for (i = 0; i < possibleMoves.length; i += 1) {
-            allPossibleMoves.push([delta, possibleMoves[i]]);
+            let possibleMoves = gameLogic.getSimpleMoves(board, delta, turnIndex);
+            for (let possibleMove of possibleMoves) {
+              allPossibleMoves.push([{fromDelta: delta, toDelta: possibleMove}]);
+            }
           }
         }
       }
@@ -172,13 +173,13 @@ module aiService {
    * Get the next state which is extracted from the move operations.
    */
   function getNextStates(move: IMove, playerIndex: number): IMove[] {
-    var board: Board = move[1].set.value;
-    var allPossibleMoveDeltas: BoardDelta[][] = getAllMoves(board, playerIndex);
-    var allPossibleMoves: IMove[] = [];
+    let board: Board = move.stateAfterMove.board;
+    let allPossibleMoveDeltas: MiniMove[][] = getAllMoves(board, playerIndex);
+    let allPossibleMoves: IMove[] = [];
 
-    for (var i = 0; i < allPossibleMoveDeltas.length; i++) {
+    for (let i = 0; i < allPossibleMoveDeltas.length; i++) {
       allPossibleMoves[i] = gameLogic.createMove(angular.copy(board),
-          allPossibleMoveDeltas[i][0], allPossibleMoveDeltas[i][1],
+          allPossibleMoveDeltas[i],
           playerIndex);
     }
 
@@ -196,13 +197,9 @@ module aiService {
    * millisecondsLimit is a time limit, and maxDepth is a depth limit.
    */
   export function createComputerMove(board: Board, playerIndex: number, alphaBetaLimits: IAlphaBetaLimits): IMove {
-    // We use alpha-beta search, where the search states are TicTacToe moves.
-    // Recal that a TicTacToe move has 3 operations:
-    // 1) endMatch or setTurn
-    // 2) {set: {key: 'board', value: ...}}
-    // 3) {set: {key: 'delta', value: ...}}]
     return alphaBetaService.alphaBetaDecision(
-        [null, {set: {key: 'board', value: board}}],
+        {stateAfterMove: {board: board ? board : gameLogic.getInitialBoard(), miniMoves: []}, 
+          endMatchScores: null, turnIndexAfterMove: null},
         playerIndex, getNextStates, getStateScoreForIndex0,
         // If you want to see debugging output in the console, then pass
         // getDebugStateToString instead of null
@@ -212,9 +209,3 @@ module aiService {
   }
 
 }
-
-
-angular.module('myApp').factory('aiService',
-    function () {
-    return {createComputerMove: aiService.createComputerMove};
-    });

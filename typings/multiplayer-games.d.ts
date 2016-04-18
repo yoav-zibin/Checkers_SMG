@@ -3,52 +3,20 @@ declare var $location: angular.ILocationService;
 declare var $timeout: angular.ITimeoutService;
 declare var $interval: angular.IIntervalService;
 
-interface ISet {
-  key: string;
-  value: any;
-  visibleToPlayerIndexes?: number[];
-}
-interface ISetVisibility {
-  key: string;
-  visibleToPlayerIndexes?: number[];
-}
-interface ISetRandomInteger {
-  key: string;
-  from: number;
-  to: number;
-}
-interface IDelete {
-  key: string;
-}
-interface IShuffle {
-  keys: string[];
-}
-interface ISetTurn {
-  turnIndex: number;
-}
-interface IEndMatch {
+// IState should be defined by the game, e.g., TicTacToe defines it as:
+// interface IState { board: Board; delta: BoardDelta; }
+// When the match ends, set turnIndexAfterMove -1 and endMatchScores to an array of scores.
+// When the match is ongoing, set turnIndexAfterMove to a valid index and endMatchScores to null.
+interface IMove {
   endMatchScores: number[];
-}
-interface IOperation {
-  set?: ISet;
-  setVisibility?: ISetVisibility;
-  setRandomInteger?: ISetRandomInteger;
-  delete?: IDelete;
-  shuffle?: IShuffle;
-  setTurn?: ISetTurn;
-  endMatch?: IEndMatch;
-}
-declare type IMove = IOperation[];
-interface IState {
-  [index: string]: any;
-}
-interface IIsMoveOk {
-  move: IMove;
-  turnIndexBeforeMove : number;
   turnIndexAfterMove: number;
-  stateBeforeMove: IState;
   stateAfterMove: IState;
+}
+interface IStateTransition {
+  turnIndexBeforeMove : number;
+  stateBeforeMove: IState;
   numberOfPlayers: number;
+  move: IMove;
 }
 interface IPlayerInfo {
   avatarImageUrl: string;
@@ -56,25 +24,22 @@ interface IPlayerInfo {
   playerId: string;
 }
 declare type PlayMode = string | number;
-interface IUpdateUI extends IIsMoveOk {
+interface IUpdateUI extends IStateTransition {
   playersInfo: IPlayerInfo[];
   yourPlayerIndex: number;
   playMode: PlayMode;
-  moveNumber: number;
-  randomSeed: string;
-  endMatchScores?: number[];
 }
 interface IGame {
-  isMoveOk(move: IIsMoveOk): boolean;
-  updateUI(update: IUpdateUI): void;
   minNumberOfPlayers: number;
   maxNumberOfPlayers: number;
+  checkMoveOk(stateTransition: IStateTransition): void;
+  updateUI(update: IUpdateUI): void;
 }
-interface IGameService {
+interface IMoveService {
   setGame(game: IGame): void;
   makeMove(move: IMove): void;
 }
-declare var gameService: IGameService;
+declare var moveService: IMoveService;
 
 interface IAlphaBetaLimits {
   millisecondsLimit? : number;
@@ -84,9 +49,9 @@ interface IAlphaBetaService {
   alphaBetaDecision(
     move: IMove,
     playerIndex: number,
-    getNextStates: (move: IMove, playerIndex: number) => IMove[],
+    getNextStates: (state: IMove, playerIndex: number) => IMove[],
     getStateScoreForIndex0: (move: IMove, playerIndex: number) => number,
-    // If you want to see debugging output in the console, then surf to game.html?debug
+    // If you want to see debugging output in the console, then surf to index.html?debug
     getDebugStateToString: (move: IMove) => string,
     alphaBetaLimits: IAlphaBetaLimits): IMove;
 }
@@ -98,12 +63,14 @@ interface StringDictionary {
 interface ITranslateService {
   (translationId: string, interpolateParams?: StringDictionary): string;
   getLanguage(): string;
-  setLanguage(language: string, codeToL10N: StringDictionary): void;
+  setTranslations(idToLanguageToL10n: Translations): void;
+  setLanguage(language: string): void;
 }
 declare var translate: ITranslateService;
 
 interface IResizeGameAreaService {
-  setWidthToHeight(widthToHeightRatio: number): void;
+  setWidthToHeight(widthToHeightRatio: number,
+    dimensionsChanged?: (gameAreaWidth: number, gameAreaHeight: number)=>void): void;
 }
 declare var resizeGameAreaService: IResizeGameAreaService;
 

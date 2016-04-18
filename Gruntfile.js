@@ -5,57 +5,30 @@ module.exports = function(grunt) {
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
-    // jshint: {
-    //   options: {
-    //     curly: true,
-    //     eqeqeq: true,
-    //     eqnull: true,
-    //     browser: true,
-    //     strict: true,
-    //     undef: true,
-    //     unused: true,
-    //     bitwise: true,
-    //     forin: true,
-    //     freeze: true,
-    //     latedef: true,
-    //     noarg: true,
-    //     nocomma: true,
-    //     nonbsp: true,
-    //     nonew: true,
-    //     notypeof: true,
-    //     jasmine: true,
-    //     jquery: true,
-    //     globals: {
-    //       module: false, require: false, // for Gruntfile.js
-    //       exports: false, // for protractor.conf.js
-    //       inject: false, // testing angular
-    //       angular: false,
-    //       console: false,
-    //       browser: false, element: false, by: false, // Protractor
-    //     }
-    //   },
-    //   all: ['Gruntfile.js', 'karma.conf.js', 'protractor.conf.js', 'src/*.js', 'languages/*.js']
-    // },
-    // karma: {
-    //   once: {
-    //     configFile: 'karma.conf.js',
-    //     singleRun: true
-    //   },
-    //   unit: {
-    //     configFile: 'karma.conf.js',
-    //     background: true,
-    //     singleRun: false
-    //   }
-    // },
-    // // Run karma and watch files using:
-    // // grunt karma:unit:start watch
-    // watch: {
-    //   files: ['src/*.js'],
-    //   tasks: ['jshint', 'karma:unit:run']
-    // },
+    ts: {
+      default: {
+        options: {
+          fast: 'never' // disable the grunt-ts fast feature
+        },
+        tsconfig: true
+      }
+    },
+    karma: {
+      unit: {
+        configFile: 'karma.conf.js',
+        singleRun: true
+      }
+    },
+    copy: {
+      imgs: {
+        expand: true,
+        src: 'imgs/*.*',
+        dest: 'dist/'
+      },
+    },
     concat: {
       options: {
-        separator: ';'
+        separator: '\n;\n',
       },
       dist: {
         // Order is important! gameLogic.js must be first because it defines myApp angular module.
@@ -63,7 +36,23 @@ module.exports = function(grunt) {
         src: ['ts_output_readonly_do_NOT_change_manually/src/gameLogic.js',
               'ts_output_readonly_do_NOT_change_manually/src/game.js',
             'ts_output_readonly_do_NOT_change_manually/src/aiService.js'],
-        dest: 'dist/everything.js'
+        dest: 'dist/js/everything.js'
+      }
+    },
+    postcss: {
+      options: {
+        map: {
+          inline: false, // save all sourcemaps as separate files...
+          annotation: 'dist/css/maps/' // ...to the specified directory
+        },
+        processors: [
+          require('autoprefixer')(), // add vendor prefixes
+          require('cssnano')() // minify the result
+        ]
+      },
+      dist: {
+        src: 'css/game.css',
+        dest: 'dist/css/everything.min.css',
       }
     },
     uglify: {
@@ -72,14 +61,14 @@ module.exports = function(grunt) {
       },
       my_target: {
         files: {
-          'dist/everything.min.js': ['dist/everything.js']
+          'dist/js/everything.min.js': ['dist/js/everything.js']
         }
       }
     },
     processhtml: {
       dist: {
         files: {
-          'game.min.html': ['game.html']
+          'dist/index.min.html': ['index.html']
         }
       }
     },
@@ -88,26 +77,30 @@ module.exports = function(grunt) {
         options: {
           basePath: '.',
           cache: [
-            'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular.min.js',
-            'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.8/angular-touch.min.js',
+            'http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js',
+            'http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-touch.min.js',
             'http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js',
             'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css',
+            // glyphicons for the carousel
             'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.woff',
             'http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.ttf',
             'http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js',
             'http://yoav-zibin.github.io/emulator/main.css',
-            'dist/everything.min.js',
-            'game.css'
+            'js/everything.min.js',
+            'css/everything.min.css',
+            "imgs/white_man.png",
+            "imgs/black_man.png",
+            "imgs/white_cro.png",
+            "imgs/black_cro.png",
+            "imgs/board.png",
           ],
           network: [
-            'languages/en.js',
-            'languages/zh.js',
             'dist/everything.min.js.map',
             'dist/everything.js'
           ],
           timestamp: true
         },
-        dest: 'game.appcache',
+        dest: 'dist/index.appcache',
         src: []
       }
     },
@@ -143,10 +136,10 @@ module.exports = function(grunt) {
 
   // Default task(s).
   grunt.registerTask('default', [
-    'concat', 'uglify',
-    'processhtml', 'manifest',
-    'http-server',
-    //'protractor'
-  ]);
-
+      'ts',
+      'karma',
+      'copy',
+      'concat', 'postcss', 'uglify',
+      'processhtml', 'manifest',
+      'http-server', 'protractor']);
 };

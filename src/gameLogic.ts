@@ -1,19 +1,22 @@
-type Board = string[][];
 
+type Board = string[][];
 interface BoardDelta {
   row: number;
   col: number;
 }
-
-interface IState{
+interface MiniMove {
+  fromDelta: BoardDelta;
+  toDelta: BoardDelta;
+}
+interface IState {
   board: Board;
-
+  // The mini-moves (e.g., a move or a series of jumps) that led to the current board. For animation purposes.
+  // All mini-moves are done by the same color (white/black).
+  miniMoves: MiniMove[];
 }
 
-
-
 module gameLogic {
-  var ENUM = {
+  export let ENUM = {
       ILLEGAL_CODE: {
         ILLEGAL_MOVE: 'ILLEGAL_MOVE',
         ILLEGAL_SIMPLE_MOVE: 'ILLEGAL_SIMPLE_MOVE',
@@ -39,7 +42,7 @@ module gameLogic {
       }
     };
 
-  var ILLEGAL_CODE = ENUM.ILLEGAL_CODE,
+  let ILLEGAL_CODE = ENUM.ILLEGAL_CODE,
       DIRECTION = ENUM.DIRECTION,
       MOVE_TYPE = ENUM.MOVE_TYPE;
 
@@ -199,7 +202,7 @@ module gameLogic {
          * @returns {boolean} true if it's simple move, otherwise false
          */
         export function isSimpleMove(board: Board, fromDelta: BoardDelta, toDelta: BoardDelta): boolean {
-          var square = board[fromDelta.row][fromDelta.col];
+          let square = board[fromDelta.row][fromDelta.col];
 
           if (getKind(square) === CONSTANTS.KING) {
             // If it's a king, it can move both forward and backward
@@ -232,7 +235,7 @@ module gameLogic {
          * @returns {boolean} true if it's jump move, otherwise false
          */
         export function isJumpMove(board: Board, fromDelta: BoardDelta, toDelta: BoardDelta): boolean {
-          var square = board[fromDelta.row][fromDelta.col];
+          let square = board[fromDelta.row][fromDelta.col];
 
           if (getKind(square) === CONSTANTS.KING) {
             // If it's a king, it can jump both forward and backward
@@ -295,69 +298,6 @@ module gameLogic {
           return false;
         }
 
-
-        /**
-         * Get the email body according to the specific illegal code.
-         *
-         * @param illegalCode
-         * @returns {string} the email body
-         */
-        function getIllegalEmailBody(illegalCode: string): string {
-          var emailBody: string = '';
-
-          switch (illegalCode) {
-            case ILLEGAL_CODE.ILLEGAL_MOVE:
-              emailBody = 'ILLEGAL_MOVE';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_SIMPLE_MOVE:
-              emailBody = 'ILLEGAL_SIMPLE_MOVE';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_JUMP_MOVE:
-              emailBody = 'ILLEGAL_JUMP_MOVE';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_DELTA:
-              emailBody = 'ILLEGAL_DELTA';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_COLOR_CHANGED:
-              emailBody = 'ILLEGAL_COLOR_CHANGED';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_CROWNED:
-              emailBody = 'ILLEGAL_CROWNED';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_UNCROWNED:
-              emailBody = 'ILLEGAL_UNCROWNED';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_IGNORE_MANDATORY_JUMP:
-              emailBody = 'ILLEGAL_IGNORE_MANDATORY_JUMP';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_SET_TURN:
-              emailBody = 'ILLEGAL_SET_TURN';
-              break;
-            case ILLEGAL_CODE.ILLEGAL_END_MATCH_SCORE:
-              emailBody = 'ILLEGAL_END_MATCH_SCORE';
-              break;
-            default:
-              throw new Error('Illegal code!!!');
-          }
-
-          return emailBody;
-        }
-
-        /**
-         * Get the email object according to the illegal code.
-         *
-         * @param illegalCode
-         * @returns {{email: string, emailSubject: string, emailBody: string}}
-         */
-         function getIllegalEmailObj(illegalCode: string): any {
-          return {
-            email: 'yl1949@nyu.edu',
-            emailSubject: 'hacker!',
-            emailBody: getIllegalEmailBody(illegalCode)
-          };
-        }
-
-
         /**
          * Get the to square delta (the destination of the move) according to
          * the move type and direction.
@@ -371,7 +311,7 @@ module gameLogic {
          * @returns {number} the to square delta.
          */
         function getToDelta(fromDelta: BoardDelta, moveType: string, direction: string): BoardDelta {
-          var toDelta: BoardDelta = {row: -1, col: -1};
+          let toDelta: BoardDelta = {row: -1, col: -1};
 
           if (!isDarkSquare(fromDelta)) {
             throw new Error("Illegal from coordinate!!!");
@@ -433,33 +373,6 @@ module gameLogic {
           return toDelta;
         }
 
-
-        /**
-         * Get the first move to initialize the game.
-         *
-         * @returns {Array}
-         */
-        export function getFirstMove(): IMove {
-          var operations: IMove = [],
-              board: Board;
-
-          operations.push({setTurn: {turnIndex: 0}});
-
-          board =  [['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']];
-
-          operations.push({set: {key: 'board', value: board}});
-
-          return operations;
-        }
-
-
         /**
          * Get all possible upwards simple moves for a specific piece by its
          * square delta.
@@ -469,7 +382,7 @@ module gameLogic {
          * @return an array of all possible moves
          */
       function getSimpleUpMoves(board: Board, delta: BoardDelta): BoardDelta[] {
-          var moves: BoardDelta[] = [],
+          let moves: BoardDelta[] = [],
               leftUpDelta: BoardDelta,
               rightUpDelta: BoardDelta;
 
@@ -538,7 +451,7 @@ module gameLogic {
          * @return an array of all possible moves
          */
         function getSimpleDownMoves(board: Board, delta: BoardDelta): BoardDelta[] {
-          var moves: BoardDelta[] = [],
+          let moves: BoardDelta[] = [],
               leftDownDelta: BoardDelta,
               rightDownDelta: BoardDelta;
 
@@ -606,7 +519,7 @@ module gameLogic {
          * @returns {row: row, col: col} the jumped (opponent) square delta
          */
         export function getJumpedDelta(fromDelta: BoardDelta, toDelta: BoardDelta): BoardDelta {
-          var jumpedDelta: BoardDelta = {row: -1, col: -1};
+          let jumpedDelta: BoardDelta = {row: -1, col: -1};
 
           if (!isDarkSquare(fromDelta) || !isDarkSquare(toDelta)) {
             throw new Error("Illegal coordinate!!!");
@@ -631,7 +544,7 @@ module gameLogic {
          * @return an array of all possible moves
          */
         function getJumpUpMoves(board: Board, delta: BoardDelta): BoardDelta[] {
-          var moves: BoardDelta[] = [],
+          let moves: BoardDelta[] = [],
               fromDelta: BoardDelta = delta,
               fromSquare: string = board[delta.row][delta.col],
               jumpedDelta: BoardDelta,
@@ -685,7 +598,7 @@ module gameLogic {
          * @return an array of all possible moves
          */
         function getJumpDownMoves(board: Board, delta: BoardDelta): BoardDelta[] {
-          var fromCoordinate: BoardDelta = delta,
+          let fromCoordinate: BoardDelta = delta,
               fromSquare: string = board[delta.row][delta.col],
               jumpedCoordinate: BoardDelta,
               jumpedSquare: string,
@@ -745,7 +658,7 @@ module gameLogic {
          * @return an array of all possible moves.
          */
         export function getSimpleMoves(board: Board, delta: BoardDelta, turnIndex: number): BoardDelta[] {
-          var moves: BoardDelta[] = [],
+          let moves: BoardDelta[] = [],
               tmpMoves: BoardDelta[] = [],
               fromSquare: string = board[delta.row][delta.col],
               color: string = fromSquare.substr(0, 1),
@@ -783,7 +696,7 @@ module gameLogic {
          * @return an array of all possible moves
          */
         export function getJumpMoves(board: Board, delta: BoardDelta, turnIndex: number): BoardDelta[] {
-          var moves: BoardDelta[] = [],
+          let moves: BoardDelta[] = [],
               tmpMoves: BoardDelta[] = [],
               fromSquare: string = board[delta.row][delta.col],
               color: string = fromSquare.substr(0, 1),
@@ -821,7 +734,7 @@ module gameLogic {
          * @return an array of all possible move.
          */
         export function getAllPossibleMoves(board: Board, delta: BoardDelta, turnIndex: number): BoardDelta[] {
-          var possibleMoves: BoardDelta[];
+          let possibleMoves: BoardDelta[];
 
           // First get all possible jump moves.
           possibleMoves = getJumpMoves(board, delta, turnIndex);
@@ -845,7 +758,7 @@ module gameLogic {
          *                white, otherwise it's empty.
          */
         export function getWinner(board: Board, turnIndex: number): string {
-          var allPossibleMoves: BoardDelta[] = [],
+          let allPossibleMoves: BoardDelta[] = [],
               hasWhite: boolean,
               hasBlack: boolean,
               square: string,
@@ -918,7 +831,7 @@ module gameLogic {
          * @returns true if there has, otherwise false.
          */
         export function hasMandatoryJumps(board: Board, yourPlayerIndex: number): boolean {
-          var possibleMoves: BoardDelta[] = [],
+          let possibleMoves: BoardDelta[] = [],
               delta: BoardDelta = {row: -1, col: -1},
               row: number,
               col: number;
@@ -947,15 +860,22 @@ module gameLogic {
          *        represents the white player.
          * @returns {Array} operations
          */
-        export function createMove(board: Board, fromDelta: BoardDelta, toDelta: BoardDelta, turnIndexBeforeMove: number): IMove {
-          var firstOperation: IOperation,
-              isAJumpMove: boolean = false,
+        export function createMiniMove(board: Board, fromDelta: BoardDelta, toDelta: BoardDelta, turnIndexBeforeMove: number): IMove {
+          if (!board) {
+            board = getInitialBoard();
+          } else {
+            board = angular.copy(board);
+          }
+          
+          let isAJumpMove: boolean = false,
               isASimpleMove: boolean = false,
               possibleSimpleMoves: BoardDelta[],
               possibleJumpMoves: BoardDelta[],
               winner: string,
               jumpedCoord: BoardDelta;
 
+          let originalKind = board[fromDelta.row][fromDelta.col].substr(1);
+              
           /*********************************************************************
            * 1. Check the coordinates first.
            ********************************************************************/
@@ -1024,7 +944,7 @@ module gameLogic {
            * 3. Check if the piece remains the same or is legally crowned.
            ********************************************************************/
 
-          var isToKingsRow =
+          let isToKingsRow =
               hasMoveOrJumpToKingsRow(toDelta, turnIndexBeforeMove);
           if (isToKingsRow) {
             if (getColor(board[toDelta.row][toDelta.col]) ===
@@ -1041,126 +961,66 @@ module gameLogic {
            ********************************************************************/
 
           winner = getWinner(board, turnIndexBeforeMove);
-
+          let endMatchScores: number[];
+          let turnIndexAfterMove: number;
           if (winner !== '') {
             // Has a winner
-            firstOperation = {endMatch: {endMatchScores:
-                winner === CONSTANTS.WHITE ? [1, 0] :  [0, 1]}};
+            // Game over.
+            turnIndexAfterMove = -1;
+            endMatchScores = winner === CONSTANTS.WHITE ? [1, 0] :  [0, 1];
           } else {
+            // Game continues.
+            endMatchScores = null;
             possibleJumpMoves = getJumpMoves(board, toDelta,
                 turnIndexBeforeMove);
             if (isAJumpMove && possibleJumpMoves.length > 0) {
-              if (!isToKingsRow) {
+              if (!isToKingsRow || originalKind === CONSTANTS.KING) {
                 // If the same piece can make any more jump moves and it does
                 // not enter the kings row, then the next turn remains
                 // unchanged.
-                firstOperation = {setTurn: {turnIndex: turnIndexBeforeMove}};
+                turnIndexAfterMove = turnIndexBeforeMove;
               } else {
                 // The piece can not make any more jump moves or it enters the
                 // kings row
-                firstOperation =
-                {setTurn: {turnIndex: 1 - turnIndexBeforeMove}};
+                turnIndexAfterMove = 1 - turnIndexBeforeMove;
               }
             } else {
               // The next turn will be the next player's if it's a simple move.
-              firstOperation = {setTurn: {turnIndex: 1 - turnIndexBeforeMove}};
+              turnIndexAfterMove = 1 - turnIndexBeforeMove;
             }
           }
-
-          return [firstOperation,
-            {set: {key: 'board', value: board}},
-            {set: {key: 'fromDelta', value: fromDelta}},
-            {set: {key: 'toDelta', value: toDelta}}];
+          let stateAfterMove: IState = {miniMoves: [{fromDelta: fromDelta, toDelta: toDelta}], board: board};
+          return {endMatchScores: endMatchScores, turnIndexAfterMove: turnIndexAfterMove, stateAfterMove: stateAfterMove};
         }
-
-
-        /**
-         * Check if the move is OK.
-         *
-         * @param params the match info which contains stateBeforeMove,
-         *              stateAfterMove, turnIndexBeforeMove, turnIndexAfterMove,
-         *              move.
-         * @returns return true if the move is ok, otherwise false.
-         */
-        // export function isMoveOk(params: IIsMoveOk, debug: any): boolean {
-        export function isMoveOk(params: IIsMoveOk): boolean {
-          var stateBeforeMove: IState = params.stateBeforeMove,
-              turnIndexBeforeMove: number = params.turnIndexBeforeMove,
-              move: IMove = params.move,
-              board: Board,
-              fromDelta: BoardDelta,
-              toDelta: BoardDelta,
-              expectedMove: IMove;
-
-          /*********************************************************************
-           * 1. If the stateBeforeMove is empty, then it should be the first
-           *    move, set the board of stateBeforeMove to be the initial board.
-           *    If the stateBeforeMove is not empty, then the move operations
-           *    array should have a length of 4.
-           ********************************************************************/
-
-
-          if (isEmptyObj(stateBeforeMove)) {
-            return angular.equals(move, getFirstMove());
-          }
-          //
-          // // If the move length is not 4, it's illegal
-          // if (move.length !== 4) {
-          //   return getIllegalEmailObj(ILLEGAL_CODE.ILLEGAL_MOVE);
-          // }
-
-          /*********************************************************************
-           * 2. Compare the expected move and the player's move.
-           ********************************************************************/
-          try {
-
-
-            // If the move length is not 4, it's illegal
-            if (move.length !== 4) {
-              throw new Error("Illegal Move: move length is not 4");
+        
+        export function createMove(board: Board, miniMoves: MiniMove[], turnIndexBeforeMove: number): IMove {
+          if (miniMoves.length === 0) throw new Error("Must have at least one mini-move");
+          let megaMove: IMove = null;
+          for (let miniMove of miniMoves) {
+            if (megaMove) {
+              if (megaMove.turnIndexAfterMove !== turnIndexBeforeMove) throw new Error("Mini-moves must be done by the same player");
             }
-            /*
-             * Example move:
-             * [
-             *   {setTurn: {turnIndex: 1}},
-             *   {set: {key: 'board', value: [
-             *     ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-             *     ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-             *     ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
-             *     ['BM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-             *     ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-             *     ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-             *     ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-             *     ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']]
-             *   }}
-             *   {set: {key: 'fromDelta', value: {row: 2, col: 1}}}
-             *   {set: {key: 'toDelta', value: {row: 3, col: 0}}}
-             * ]
-             */
-
-            board = stateBeforeMove.board;
-            fromDelta = move[2].set.value;
-            toDelta = move[3].set.value;
-            expectedMove =
-                createMove(board, fromDelta, toDelta, turnIndexBeforeMove);
-            // if (debug) {
-            //   console.log("Debug");
-            //   console.log(JSON.stringify(move));
-            //   console.log(JSON.stringify(expectedMove));
-            //   console.log(angular.equals(move, expectedMove));
-            // }
-
-            if (angular.equals(move, expectedMove)) {
-              return true;
-            }
-
-          } catch (e) {
-            // if there are any exceptions then the move is illegal
-            // return false;
-            return true;
+            megaMove = createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, turnIndexBeforeMove);
+            board = angular.copy(megaMove.stateAfterMove.board); 
           }
-          // return false;
-          return true;
+          megaMove.stateAfterMove.miniMoves = miniMoves;
+          return megaMove;
+        }
+        
+
+        export function checkMoveOk(stateTransition: IStateTransition): void {
+          // We can assume that turnIndexBeforeMove and stateBeforeMove are legal, and we need
+          // to verify that the move is OK.
+          let turnIndexBeforeMove = stateTransition.turnIndexBeforeMove;
+          let stateBeforeMove: IState = stateTransition.stateBeforeMove;
+          let move: IMove = stateTransition.move;
+          let stateAfterMove: IState = move.stateAfterMove;
+          let board: Board = stateBeforeMove ? stateBeforeMove.board : null;
+          let expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);
+          if (!angular.equals(move, expectedMove)) {
+            throw new Error("Expected move=" + angular.toJson(expectedMove, true) +
+                ", but got stateTransition=" + angular.toJson(stateTransition, true))
+          }
         }
 
         /**
@@ -1177,27 +1037,3 @@ module gameLogic {
             ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']];
         }
 }
-
-
-angular.module('myApp', [ 'ngTouch', 'ui.bootstrap','gameServices'])
-    .factory('gameLogic', function() {
-   return {
-     isMoveOk: gameLogic.isMoveOk,
-     getFirstMove: gameLogic.getFirstMove,
-     createMove: gameLogic.createMove,
-     getJumpMoves: gameLogic.getJumpMoves,
-     getSimpleMoves: gameLogic.getSimpleMoves,
-     getAllPossibleMoves: gameLogic.getAllPossibleMoves,
-     hasMandatoryJumps: gameLogic.hasMandatoryJumps,
-     getJumpedDelta: gameLogic.getJumpedDelta,
-     isOwnColor: gameLogic.isOwnColor,
-     getWinner: gameLogic.getWinner,
-     getColor: gameLogic.getColor,
-     getKind: gameLogic.getKind,
-     isEmptyObj: gameLogic.isEmptyObj,
-     isSimpleMove: gameLogic.isSimpleMove,
-     isJumpMove: gameLogic.isJumpMove,
-     getInitialBoard: gameLogic.getInitialBoard,
-     CONSTANTS: gameLogic.CONSTANTS
-   };
-});
