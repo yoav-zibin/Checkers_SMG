@@ -4,13 +4,14 @@ var game;
     game.isHelpModalShown = false;
     var CONSTANTS = gameLogic.CONSTANTS;
     var gameArea = null;
-    // Global variables that are cleared on getting updateUI.
-    // I'm exporting all these variables for easier debugging from the console.
-    game.currUpdateUI = null;
+    // Global variables are cleared when getting updateUI.
+    // I export all variables to make it easy to debug in the browser by
+    // simply typing in the console, e.g.,
+    // game.currentUpdateUI
+    game.currentUpdateUI = null;
     game.board = null;
     game.shouldRotateBoard = false;
-    game.isComputerTurn = false;
-    game.didHumanMakeMove = false;
+    game.didMakeMove = false; // You can only make one move per updateUI
     game.remainingAnimations = [];
     game.animationInterval = null;
     // for drag-n-drop and ai move animations
@@ -23,15 +24,15 @@ var game;
                 zh: "英国跳棋规则",
             },
             "RULES_SLIDE1": {
-                en: "Uncrowned pieces move one step diagonally forward and capture an opponent's piece by moving two consecutive steps in the same line, jumping over the piece on the first step. Multiple opposing pieces may be captured in a single turn provided this is done by successive jumps made by a single piece; the jumps do not need to be in the same line but may \"zigzag\" (change diagonal direction).",
+                en: "Regular pieces move one step diagonally forward.",
                 zh: "\"未成王\"的棋子只能斜着走向前方临近的空格子。吃子时，敌方的棋子必须是在前方斜方向临近的格子里，而且该敌方棋子的对应的斜方格子里必须没有棋子。只要斜前方还有可以吃的子，便可以多次吃子。",
             },
             "RULES_SLIDE2": {
-                en: "When a man reaches the kings row (the farthest row forward), it becomes a king, and acquires additional powers including the ability to move backwards (and capture backwards). As with non-king men, a king may make successive jumps in a single turn provided that each jump captures an opponent man or king.",
+                en: "When a man reaches the final row, it becomes a king, which can also move backwards.",
                 zh: "当棋子到底线停下时，它就\"成王\"，以后便可以向后移动，同时多次吃子是也可以向后吃子。",
             },
             "RULES_SLIDE3": {
-                en: "Capturing is mandatory.",
+                en: "Capturing is mandatory, by jumping over an adjacent opponent piece. Multiple successive jumps do not need to be in the same line but may \"zigzag\" (change diagonal direction).",
                 zh: "若一枚棋子可以吃棋，它必须吃。棋子可以连吃。即是说，若一枚棋子吃过敌方的棋子后，若它新的位置亦可以吃敌方的另一些敌方棋子，它必须再吃，直到无法再吃为止。",
             },
             "RULES_SLIDE4": {
@@ -82,26 +83,17 @@ var game;
         if (game.remainingAnimations.length == 0)
             return;
         var miniMove = game.remainingAnimations.shift();
-        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currUpdateUI.turnIndexBeforeMove);
+        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
         game.board = iMove.stateAfterMove.board;
         if (game.remainingAnimations.length == 0) {
             clearAnimationInterval();
             // Checking we got to the corrent board
-            var expectedBoard = game.currUpdateUI.move.stateAfterMove.board;
+            var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
             if (!angular.equals(game.board, expectedBoard)) {
                 throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
             }
-            sendComputerMove();
+            maybeSendComputerMove();
         }
-    }
-    function sendComputerMove() {
-        if (!game.isComputerTurn) {
-            return;
-        }
-        game.isComputerTurn = false; // to make sure the computer can only move once.
-        var move = aiService.createComputerMove(game.board, yourPlayerIndex(), { millisecondsLimit: 1000 });
-        log.info("computer move: ", move);
-        moveService.makeMove(move);
     }
     /**
      * This method update the game's UI.
@@ -109,50 +101,66 @@ var game;
      */
     // for drag-n-drop and ai move animations
     function updateUI(params) {
-        game.currUpdateUI = params;
+        log.info("Game got updateUI:", params);
+        game.didMakeMove = false; // Only one move per updateUI
+        game.isHelpModalShown = false;
+        game.currentUpdateUI = params;
         clearDragNDrop();
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
         game.shouldRotateBoard = params.playMode === 1;
-        var move = params.move;
-        var isFirstMove = !move.stateAfterMove;
-        // Handle animations
         clearAnimationInterval();
-        if (isFirstMove) {
+        if (isFirstMove()) {
             game.board = gameLogic.getInitialBoard();
             game.remainingAnimations = [];
+            // This is the first move in the match, so
+            // there is not going to be an animation, so
+            // call maybeSendComputerMove() now (can happen in ?onlyAIs mode)
+            maybeSendComputerMove();
         }
         else {
             game.board = params.stateBeforeMove ? params.stateBeforeMove.board : gameLogic.getInitialBoard();
-            game.remainingAnimations = angular.copy(move.stateAfterMove.miniMoves);
+            // We calculate the AI move only after the animation finishes,
+            // because if we call aiService now
+            // then the animation will be paused until the javascript finishes.  
+            game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
             game.animationInterval = $interval(advanceToNextAnimation, 500);
         }
-        game.didHumanMakeMove = false;
-        game.isComputerTurn = isMyTurn() &&
-            params.playersInfo[params.yourPlayerIndex].playerId === '';
-        // We calculate the AI move only after the animation finishes,
-        // because if we call aiService now
-        // then the animation will be paused until the javascript finishes.
-        if (game.isComputerTurn && isFirstMove) {
-            // This is the first move in the match, so
-            // there is not going to be an animation, so
-            // call sendComputerMove() now (can happen in ?onlyAIs mode)
-            sendComputerMove();
+    }
+    function maybeSendComputerMove() {
+        if (!isComputerTurn())
+            return;
+        var move = aiService.createComputerMove(game.board, yourPlayerIndex(), { millisecondsLimit: 1000 });
+        log.info("Computer move: ", move);
+        makeMove(move);
+    }
+    function makeMove(move) {
+        if (game.didMakeMove) {
+            return;
         }
+        game.didMakeMove = true;
+        moveService.makeMove(move);
+    }
+    function isFirstMove() {
+        return !game.currentUpdateUI.move.stateAfterMove;
     }
     function yourPlayerIndex() {
-        return game.currUpdateUI ? game.currUpdateUI.yourPlayerIndex : -1;
+        return game.currentUpdateUI.yourPlayerIndex;
+    }
+    function isComputer() {
+        return game.currentUpdateUI.playersInfo[game.currentUpdateUI.yourPlayerIndex].playerId === '';
+    }
+    function isComputerTurn() {
+        return isMyTurn() && isComputer();
+    }
+    function isHumanTurn() {
+        return isMyTurn() && !isComputer() &&
+            game.remainingAnimations.length == 0; // you can only move after all animations are over.
     }
     function isMyTurn() {
-        return game.currUpdateUI &&
-            game.currUpdateUI.move.turnIndexAfterMove >= 0 &&
-            game.currUpdateUI.yourPlayerIndex === game.currUpdateUI.move.turnIndexAfterMove; // it's my turn
-    }
-    function canHumanMakeMove() {
-        return isMyTurn() &&
-            game.currUpdateUI.playersInfo[game.currUpdateUI.yourPlayerIndex].playerId !== '' &&
-            game.remainingAnimations.length == 0 &&
-            !game.didHumanMakeMove; // you can only make one move per updateUI.
+        return !game.didMakeMove &&
+            game.currentUpdateUI.move.turnIndexAfterMove >= 0 &&
+            game.currentUpdateUI.yourPlayerIndex === game.currentUpdateUI.move.turnIndexAfterMove; // it's my turn
     }
     function getAnimationClassFromIdDiff(idDiff) {
         switch (idDiff) {
@@ -200,9 +208,10 @@ var game;
     game.getAnimationClass = getAnimationClass;
     function makeMiniMove(fromDelta, toDelta) {
         log.info("makeMiniMove from:", fromDelta, " to: ", toDelta);
-        if (!canHumanMakeMove()) {
+        if (!isHumanTurn()) {
             return;
         }
+        // TODO collect minimoves and make a mega one.
         var nextMove = null;
         try {
             nextMove = gameLogic.createMove(angular.copy(game.board), [{ fromDelta: fromDelta, toDelta: toDelta }], yourPlayerIndex());
@@ -212,8 +221,7 @@ var game;
             return;
         }
         // Move is legal, make it!
-        game.didHumanMakeMove = true; // to prevent making another move
-        moveService.makeMove(nextMove);
+        makeMove(nextMove);
     }
     /**
      * Convert the delta to UI state index
@@ -284,6 +292,10 @@ var game;
         // Make sure the player can not drag the piece outside of the board
         var x = Math.min(Math.max(cx - gameArea.offsetLeft, cellSize.width / 2), gameArea.clientWidth - cellSize.width / 2);
         var y = Math.min(Math.max(cy - gameArea.offsetTop, cellSize.height / 2), gameArea.clientHeight - cellSize.height / 2);
+        var dndPos = {
+            top: y - cellSize.height * 0.605,
+            left: x - cellSize.width * 0.605
+        };
         var delta = {
             row: Math.floor(CONSTANTS.ROW * y / gameArea.clientHeight),
             col: Math.floor(CONSTANTS.COLUMN * x / gameArea.clientWidth)
@@ -292,10 +304,16 @@ var game;
         if (type === "touchstart" && canDrag(delta.row, delta.col)) {
             // If a piece is dragged, store the piece element
             if (hasPiece(delta.row, delta.col) &&
-                canHumanMakeMove() &&
+                isHumanTurn() &&
                 isOwnColor(rotatedDelta)) {
                 game.dndStartPos = angular.copy(delta);
                 game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
+                var style = game.dndElem.style;
+                style['z-index'] = 20;
+                var filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+                style['filter'] = filter;
+                style['-webkit-filter'] = filter;
+                setDndElemPos(dndPos);
             }
         }
         else if (type === "touchend" && game.dndStartPos) {
@@ -308,10 +326,7 @@ var game;
         }
         else if (type === 'touchmove' && game.dndStartPos) {
             // Dragging around
-            setDndElemPos({
-                top: y - cellSize.height * 0.605,
-                left: x - cellSize.width * 0.605
-            });
+            setDndElemPos(dndPos);
         }
         // Clean up
         if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
