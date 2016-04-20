@@ -11,7 +11,8 @@ module.exports = function(grunt) {
   // convert -define jpeg:size=1024x1024 auto_resize_images/src.png -thumbnail '1025x500>' -background white -gravity center -extent 1025x500 auto_resize_images/output.png
           
   var src_img = "src.png";
-  var src_img_size = "512x512";
+  var src_img_width_to_height_ratio = 1024/1024;
+  var src_img_size = "1024x1024";
   var directory = "auto_resize_images";
   var output_directory = directory + "/output";
   var padColor = "white";
@@ -61,6 +62,7 @@ module.exports = function(grunt) {
   var subdirectories = {};
   commands.push('rm -rf ' + output_directory);
   commands.push('mkdir ' + output_directory);
+  commands.push('mkdir ' + output_directory + '/temp');
   for (var i = 0; i < desired_sizes.length; i++) {
     var desired_size = desired_sizes[i];
     if (desired_size.split('/').length >= 3) {
@@ -82,11 +84,26 @@ module.exports = function(grunt) {
     if (dimensions != '' + (width_height.length == 1 ? width : width + "x" + height)) {
       throw new Error("Illegal dimension size in filename '" + desired_size + "'. You should have a dimension suffix, e.g., 'blabla-512x200'");
     }
+    
+    // Determining whether the limiting factor is height or width
+    /*var is_height_limiting = width / src_img_width_to_height_ratio > height;
+    var scale_to_width = is_height_limiting ? height * src_img_width_to_height_ratio : width;
+    var scale_to_height = is_height_limiting ? height : width / src_img_width_to_height_ratio;
+    commands.push('sips ' + directory + '/' + src_img + ' --resampleHeightWidth ' +
+        scale_to_height + ' ' + scale_to_width +
+        ' -s format bmp --out ' + output_directory + '/temp/' + dimensions + '.bmp');
+    commands.push('sips ' + output_directory +
+      '/temp/' + dimensions + '.bmp -s format png --padToHeightWidth ' +
+      height + ' ' + width +
+      ' --padColor FFFFFF --out ' + output_directory + '/' + desired_size + ".png");
+    */  
+    
     commands.push(
       "convert -define jpeg:size=" + src_img_size + " " + directory + "/src.png -thumbnail '" +
          width + 'x' + height + ">' -background " +
-         padColor + " -gravity center -extent " + width + 'x' + height + " " + output_directory + '/' + desired_size + ".png");
+         padColor + " -gravity center -colors 256 -quality 90 -depth 8 -extent " + width + 'x' + height + " " + output_directory + '/' + desired_size + ".png");
   }
+  commands.push('rm -rf ' + output_directory + '/temp');
   var auto_resize_images_command = commands.join(" && ");
 
   grunt.initConfig({
