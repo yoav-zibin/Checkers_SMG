@@ -19,29 +19,65 @@ var game;
     game.dndElem = null;
     function getTranslations() {
         return {
-            "RULES_OF_CHECKERS": {
-                en: "Rules of Checkers",
-                zh: "英国跳棋规则",
+            "CHECKERS_RULES_TITLE": {
+                "en": "Rules of Checkers",
+                "iw": "כללים של משחק דמקה",
+                "pt": "Regras de Damas",
+                "zh": "英国跳棋规则",
+                "el": "Κανόνες Ντάμα",
+                "fr": "Règles de Checkers",
+                "hi": "चेकर्स के नियम",
+                "es": "Reglas de Damas"
             },
-            "RULES_SLIDE1": {
-                en: "Regular pieces move one step diagonally forward.",
-                zh: "\"未成王\"的棋子只能斜着走向前方临近的空格子。吃子时，敌方的棋子必须是在前方斜方向临近的格子里，而且该敌方棋子的对应的斜方格子里必须没有棋子。只要斜前方还有可以吃的子，便可以多次吃子。",
+            "CHECKERS_RULES_SLIDE1": {
+                "en": "Regular pieces move one step diagonally forward.",
+                "iw": "כל שחקן מניע בתורו אבן-משחק באלכסון",
+                "pt": "pedaços regulares mover um passo na diagonal para a frente.",
+                "zh": "定期件移动一步斜前方。",
+                "el": "Η τακτική κομμάτια προχωρήσουμε ένα βήμα διαγώνια προς τα εμπρός.",
+                "fr": "morceaux réguliers se déplacent d'un pas en diagonale avant.",
+                "hi": "नियमित रूप से टुकड़े एक कदम तिरछे आगे बढ़ना है।",
+                "es": "trozos regulares se mueven un paso en diagonal hacia delante."
             },
-            "RULES_SLIDE2": {
-                en: "When a man reaches the final row, it becomes a king, which can also move backwards.",
-                zh: "当棋子到底线停下时，它就\"成王\"，以后便可以向后移动，同时多次吃子是也可以向后吃子。",
+            "CHECKERS_RULES_SLIDE2": {
+                "en": "A regular piece becomes a king when it reaches the final row. A king can also move backwards.",
+                "iw": "כשאבן משחק מגיעה לשורה האחרונה, היא הופכת להיות \"מלך\". מלך, בניגוד לאבן רגילה, יכול לנוע לכל הכיוונים באלכסון (כלומר גם אחורה).",
+                "pt": "Um pedaço comum torna-se um rei quando se atinge a linha final. Um rei também pode se mover para trás.",
+                "zh": "定期一块变成一个国王，当它到达最后一排。 A君也可以向后移动。",
+                "el": "Μια τακτική κομμάτι γίνεται βασιλιάς όταν φτάσει την τελική γραμμή. Ένας βασιλιάς μπορεί επίσης να κινηθεί προς τα πίσω.",
+                "fr": "Un morceau régulier devient un roi quand il atteint la dernière rangée. Un roi peut également se déplacer vers l'arrière.",
+                "hi": "एक नियमित रूप से टुकड़े के एक राजा जब यह अंतिम पंक्ति तक पहुँचता हो जाता है। एक राजा भी पीछे की ओर स्थानांतरित कर सकते हैं।",
+                "es": "Una pieza normal se convierte en un rey cuando se llega a la última fila. Un rey puede moverse hacia atrás."
             },
-            "RULES_SLIDE3": {
-                en: "Capturing is mandatory, by jumping over an adjacent opponent piece. Multiple successive jumps do not need to be in the same line but may \"zigzag\" (change diagonal direction).",
-                zh: "若一枚棋子可以吃棋，它必须吃。棋子可以连吃。即是说，若一枚棋子吃过敌方的棋子后，若它新的位置亦可以吃敌方的另一些敌方棋子，它必须再吃，直到无法再吃为止。",
+            "CHECKERS_RULES_SLIDE3": {
+                "en": "Capturing is done jumping over adjacent opponent pieces. It's mandatory! Multiple successive jumps can zigzag, i.e., change diagonal direction.",
+                "iw": "דילוג (או אכילה) מתבצע כאשר אבן משחק מונחת במשבצת סמוכה לאבן היריב, ומעבר לאבן היריב יש מקום פנוי. כאשר דילוג אפשרי, חובה לבצע אותו.",
+                "pt": "Captura é feita a saltar sobre as peças oponente adjacentes. É obrigatório! Múltiplos saltos sucessivos pode ziguezague, ou seja, mudar de direção diagonal.",
+                "zh": "捕获完成后跳过相邻的对手件。这是强制性的！多个连续跳跃可以曲折，即改变对角线方向。",
+                "el": "Σύλληψη γίνεται άλμα πάνω από παρακείμενα κομμάτια του αντιπάλου. Είναι υποχρεωτική! Πολλαπλές διαδοχικές άλματα μπορεί να ζιγκ-ζαγκ, δηλαδή, να αλλάξει διαγώνια κατεύθυνση.",
+                "fr": "Capturing se fait sauter sur des morceaux adversaire adjacents. Il est obligatoire! sauts successifs multiples peuvent zigzag, à savoir, changer de direction diagonale.",
+                "hi": "कैप्चरिंग आसन्न प्रतिद्वंद्वी टुकड़े पर कूद किया जाता है। यह अनिवार्य है! एकाधिक लगातार कूदता है, वक्र कर सकते हैं जैसे कि, विकर्ण दिशा बदल जाते हैं।",
+                "es": "La captura se realiza saltando sobre las piezas adyacentes oponente. ¡Es obligatorio! saltos sucesivos múltiples pueden zigzag, es decir, cambiar de dirección diagonal."
             },
-            "RULES_SLIDE4": {
-                en: "The player without pieces remaining, or who cannot move due to being blocked, loses the game.",
-                zh: "若一位玩家没法行走或所有棋子均被吃去便算输。",
+            "CHECKERS_RULES_SLIDE4": {
+                "en": "A player that can't move or lost all its pieces, loses the game.",
+                "iw": "שחקן שלא יכול לזוז או שאיבד את כל האבנים, מפסיד את המשחק.",
+                "pt": "Um jogador que não pode se mover ou perdido todas as suas peças, perde o jogo.",
+                "zh": "不能移动或丧失其所有作品的球员，失去了比赛。",
+                "el": "Ένας παίκτης που δεν μπορεί να κινηθεί ή να χάσει όλα τα κομμάτια του, χάνει το παιχνίδι.",
+                "fr": "Un joueur qui ne peut pas se déplacer ou perdu toutes ses pièces, perd la partie.",
+                "hi": "एक खिलाड़ी है कि स्थानांतरित करने या खो नहीं कर सकते हैं अपने सभी टुकड़े, खेल खो देता है।",
+                "es": "Un jugador que no se puede mover o perdido todas sus piezas, pierde el juego."
             },
-            "CLOSE": {
-                en: "Close",
-                zh: "继续游戏",
+            "CHECKERS_CLOSE": {
+                "en": "Close",
+                "iw": "סגור",
+                "pt": "Fechar",
+                "zh": "继续游戏",
+                "el": "Κοντά",
+                "fr": "Fermer",
+                "hi": "बंद करे",
+                "es": "Cerrar"
             },
         };
     }
@@ -51,7 +87,7 @@ var game;
     function init() {
         translate.setTranslations(getTranslations());
         translate.setLanguage('en');
-        console.log("Translation of 'RULES_OF_CHECKERS' is " + translate('RULES_OF_CHECKERS'));
+        console.log("Translation of 'CHECKERS_RULES_TITLE' is " + translate('CHECKERS_RULES_TITLE'));
         resizeGameAreaService.setWidthToHeight(1);
         /**
          * Set the game!

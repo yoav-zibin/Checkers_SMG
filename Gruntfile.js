@@ -208,7 +208,7 @@ module.exports = function(grunt) {
           ],
           timestamp: true
         },
-        dest: 'dist/index.appcache',
+        dest: 'dist/index.min.appcache',
         src: []
       }
     },
