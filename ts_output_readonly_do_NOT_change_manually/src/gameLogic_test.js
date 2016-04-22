@@ -845,8 +845,8 @@ describe('gameLogic unit tests:', function () {
         var turn = BLACK_TURN_INDEX;
         var movesNum = moves.length;
         expect(movesNum).toBe(46 * 2 + 1); // Black 46th move ends the game.
-        for (var _i = 0, moves_1 = moves; _i < moves_1.length; _i++) {
-            var move = moves_1[_i];
+        for (var _i = 0; _i < moves.length; _i++) {
+            var move = moves[_i];
             var fromDelta = idToDelta(move[0]);
             var toDelta = idToDelta(move[1]);
             var m = gameLogic.createMove(board, [{ fromDelta: fromDelta, toDelta: toDelta }], turn);

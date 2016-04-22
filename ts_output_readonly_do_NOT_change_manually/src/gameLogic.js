@@ -834,8 +834,8 @@ var gameLogic;
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;
-        for (var _i = 0, miniMoves_1 = miniMoves; _i < miniMoves_1.length; _i++) {
-            var miniMove = miniMoves_1[_i];
+        for (var _i = 0; _i < miniMoves.length; _i++) {
+            var miniMove = miniMoves[_i];
             if (megaMove) {
                 if (megaMove.turnIndexAfterMove !== turnIndexBeforeMove)
                     throw new Error("Mini-moves must be done by the same player");
