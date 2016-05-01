@@ -62,7 +62,7 @@ Animation
 ****************************************/
 .explodePiece {
   z-index: 5;
-  animation: explodePiece 0.4s linear forwards;
+  animation: explodePiece 0.4s cubic-bezier(0.420, 0.000, 1.000, 0.830) forwards;
 }
 
 @keyframes explodePiece {

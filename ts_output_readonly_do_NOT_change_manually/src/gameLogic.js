@@ -718,7 +718,7 @@ var gameLogic;
         else {
             board = angular.copy(board);
         }
-        var isAJumpMove = false, isASimpleMove = false, possibleSimpleMoves, possibleJumpMoves, winner, jumpedCoord;
+        var isAJumpMove = false, isASimpleMove = false, possibleSimpleMoves, winner, jumpedCoord;
         var originalKind = board[fromDelta.row][fromDelta.col].substr(1);
         /*********************************************************************
          * 1. Check the coordinates first.
@@ -753,7 +753,7 @@ var gameLogic;
         }
         else if (isAJumpMove) {
             // Jump move
-            possibleJumpMoves = getJumpMoves(board, fromDelta, turnIndexBeforeMove);
+            var possibleJumpMoves = getJumpMoves(board, fromDelta, turnIndexBeforeMove);
             // The move should exist in the possible jump moves.
             if (!doesContainMove(possibleJumpMoves, toDelta)) {
                 throw new Error(ILLEGAL_CODE.ILLEGAL_JUMP_MOVE);
@@ -796,9 +796,11 @@ var gameLogic;
          * 4. Check the set turn index or end match operation.
          ********************************************************************/
         winner = getWinner(board, turnIndexBeforeMove);
+        var playerHasMoreJumpMoves = isAJumpMove &&
+            getJumpMoves(board, toDelta, turnIndexBeforeMove).length > 0;
         var endMatchScores;
         var turnIndexAfterMove;
-        if (winner !== '') {
+        if (winner !== '' && !playerHasMoreJumpMoves) {
             // Has a winner
             // Game over.
             turnIndexAfterMove = -1;
@@ -807,8 +809,7 @@ var gameLogic;
         else {
             // Game continues.
             endMatchScores = null;
-            possibleJumpMoves = getJumpMoves(board, toDelta, turnIndexBeforeMove);
-            if (isAJumpMove && possibleJumpMoves.length > 0) {
+            if (playerHasMoreJumpMoves) {
                 if (!isToKingsRow || originalKind === gameLogic.CONSTANTS.KING) {
                     // If the same piece can make any more jump moves and it does
                     // not enter the kings row, then the next turn remains
@@ -834,8 +835,8 @@ var gameLogic;
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;
-        for (var _i = 0; _i < miniMoves.length; _i++) {
-            var miniMove = miniMoves[_i];
+        for (var _i = 0, miniMoves_1 = miniMoves; _i < miniMoves_1.length; _i++) {
+            var miniMove = miniMoves_1[_i];
             if (megaMove) {
                 if (megaMove.turnIndexAfterMove !== turnIndexBeforeMove)
                     throw new Error("Mini-moves must be done by the same player");
@@ -847,12 +848,21 @@ var gameLogic;
         return megaMove;
     }
     gameLogic.createMove = createMove;
+    function createInitialMove() {
+        return { endMatchScores: null, turnIndexAfterMove: 0,
+            stateAfterMove: { miniMoves: [], board: getInitialBoard() } };
+    }
+    gameLogic.createInitialMove = createInitialMove;
     function checkMoveOk(stateTransition) {
         // We can assume that turnIndexBeforeMove and stateBeforeMove are legal, and we need
         // to verify that the move is OK.
         var turnIndexBeforeMove = stateTransition.turnIndexBeforeMove;
         var stateBeforeMove = stateTransition.stateBeforeMove;
         var move = stateTransition.move;
+        if (!stateBeforeMove && turnIndexBeforeMove === 0 &&
+            angular.equals(createInitialMove(), move)) {
+            return;
+        }
         var stateAfterMove = move.stateAfterMove;
         var board = stateBeforeMove ? stateBeforeMove.board : null;
         var expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);

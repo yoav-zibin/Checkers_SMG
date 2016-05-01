@@ -98,8 +98,8 @@ var aiService;
     }
     function addMegaJumpMoves(allPossibleMoves, board, turnIndex, from) {
         var possibleMoves = gameLogic.getJumpMoves(board, from, turnIndex);
-        for (var _i = 0; _i < possibleMoves.length; _i++) {
-            var possibleMove = possibleMoves[_i];
+        for (var _i = 0, possibleMoves_1 = possibleMoves; _i < possibleMoves_1.length; _i++) {
+            var possibleMove = possibleMoves_1[_i];
             var miniMove = [];
             var currentPos = from;
             var nextPos = possibleMove;
@@ -114,7 +114,7 @@ var aiService;
                 // We need to make another jump: update currentBoard, currentPos, nextPos
                 currentBoard = iMove.stateAfterMove.board;
                 currentPos = nextPos;
-                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0];
+                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move
             } while (true);
             allPossibleMoves.push(miniMove);
         }
@@ -137,8 +137,8 @@ var aiService;
                         // If there's no mandatory jump,
                         // then check the possible simple move
                         var possibleMoves = gameLogic.getSimpleMoves(board, delta, turnIndex);
-                        for (var _i = 0; _i < possibleMoves.length; _i++) {
-                            var possibleMove = possibleMoves[_i];
+                        for (var _i = 0, possibleMoves_2 = possibleMoves; _i < possibleMoves_2.length; _i++) {
+                            var possibleMove = possibleMoves_2[_i];
                             allPossibleMoves.push([{ fromDelta: delta, toDelta: possibleMove }]);
                         }
                     }

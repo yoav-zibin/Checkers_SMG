@@ -70,4 +70,40 @@ describe("aiService", function() {
     };
     expect(angular.equals(move, expectedMove)).toBe(true);
   });
+  
+  
+  it("Another mega move", function () {
+    let move = createComputerMove([
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","WM","--","BM","--","DS","--","DS"],
+        ["DS","--","BM","--","DS","--","BM","--"],
+        ["--","WM","--","DS","--","BM","--","DS"],
+        ["WM","--","DS","--","DS","--","DS","--"]
+      ], 1);
+    let expectedMove: IMove = {
+      stateAfterMove : {
+        board: [
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","DS","--","DS","--","DS","--"],
+        ["--","DS","--","BM","--","DS","--","DS"],
+        ["DS","--","BM","--","DS","--","BM","--"],
+        ["--","DS","--","DS","--","BM","--","DS"],
+        ["WM","--","BK","--","DS","--","DS","--"]
+        ],
+        miniMoves: [
+          {fromDelta: {row: 3, col: 2}, toDelta: {row: 5, col: 0}},
+          {fromDelta: {row: 5, col: 0}, toDelta: {row: 7, col: 2}},
+        ]
+      },
+      endMatchScores: null,
+      turnIndexAfterMove: 0
+    };
+    expect(angular.equals(move, expectedMove)).toBe(true);
+  });
+
 });

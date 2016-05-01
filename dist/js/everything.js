@@ -718,7 +718,7 @@ var gameLogic;
         else {
             board = angular.copy(board);
         }
-        var isAJumpMove = false, isASimpleMove = false, possibleSimpleMoves, possibleJumpMoves, winner, jumpedCoord;
+        var isAJumpMove = false, isASimpleMove = false, possibleSimpleMoves, winner, jumpedCoord;
         var originalKind = board[fromDelta.row][fromDelta.col].substr(1);
         /*********************************************************************
          * 1. Check the coordinates first.
@@ -753,7 +753,7 @@ var gameLogic;
         }
         else if (isAJumpMove) {
             // Jump move
-            possibleJumpMoves = getJumpMoves(board, fromDelta, turnIndexBeforeMove);
+            var possibleJumpMoves = getJumpMoves(board, fromDelta, turnIndexBeforeMove);
             // The move should exist in the possible jump moves.
             if (!doesContainMove(possibleJumpMoves, toDelta)) {
                 throw new Error(ILLEGAL_CODE.ILLEGAL_JUMP_MOVE);
@@ -796,9 +796,11 @@ var gameLogic;
          * 4. Check the set turn index or end match operation.
          ********************************************************************/
         winner = getWinner(board, turnIndexBeforeMove);
+        var playerHasMoreJumpMoves = isAJumpMove &&
+            getJumpMoves(board, toDelta, turnIndexBeforeMove).length > 0;
         var endMatchScores;
         var turnIndexAfterMove;
-        if (winner !== '') {
+        if (winner !== '' && !playerHasMoreJumpMoves) {
             // Has a winner
             // Game over.
             turnIndexAfterMove = -1;
@@ -807,8 +809,7 @@ var gameLogic;
         else {
             // Game continues.
             endMatchScores = null;
-            possibleJumpMoves = getJumpMoves(board, toDelta, turnIndexBeforeMove);
-            if (isAJumpMove && possibleJumpMoves.length > 0) {
+            if (playerHasMoreJumpMoves) {
                 if (!isToKingsRow || originalKind === gameLogic.CONSTANTS.KING) {
                     // If the same piece can make any more jump moves and it does
                     // not enter the kings row, then the next turn remains
@@ -847,12 +848,21 @@ var gameLogic;
         return megaMove;
     }
     gameLogic.createMove = createMove;
+    function createInitialMove() {
+        return { endMatchScores: null, turnIndexAfterMove: 0,
+            stateAfterMove: { miniMoves: [], board: getInitialBoard() } };
+    }
+    gameLogic.createInitialMove = createInitialMove;
     function checkMoveOk(stateTransition) {
         // We can assume that turnIndexBeforeMove and stateBeforeMove are legal, and we need
         // to verify that the move is OK.
         var turnIndexBeforeMove = stateTransition.turnIndexBeforeMove;
         var stateBeforeMove = stateTransition.stateBeforeMove;
         var move = stateTransition.move;
+        if (!stateBeforeMove && turnIndexBeforeMove === 0 &&
+            angular.equals(createInitialMove(), move)) {
+            return;
+        }
         var stateAfterMove = move.stateAfterMove;
         var board = stateBeforeMove ? stateBeforeMove.board : null;
         var expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);
@@ -997,11 +1007,11 @@ var game;
         }
     }
     function advanceToNextAnimation() {
-        if (game.remainingAnimations.length == 0)
-            return;
-        var miniMove = game.remainingAnimations.shift();
-        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
-        game.board = iMove.stateAfterMove.board;
+        if (game.remainingAnimations.length > 0) {
+            var miniMove = game.remainingAnimations.shift();
+            var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
+            game.board = iMove.stateAfterMove.board;
+        }
         if (game.remainingAnimations.length == 0) {
             clearAnimationInterval();
             // Checking we got to the corrent board
@@ -1027,16 +1037,16 @@ var game;
         //player's view, the board always face towards him/her;
         game.shouldRotateBoard = params.playMode === 1;
         clearAnimationInterval();
+        game.remainingAnimations = [];
         if (isFirstMove()) {
             game.board = gameLogic.getInitialBoard();
-            game.remainingAnimations = [];
-            // This is the first move in the match, so
-            // there is not going to be an animation, so
-            // call maybeSendComputerMove() now (can happen in ?onlyAIs mode)
-            maybeSendComputerMove();
+            if (isMyTurn())
+                makeMove(gameLogic.createInitialMove());
         }
         else {
-            game.board = params.stateBeforeMove ? params.stateBeforeMove.board : gameLogic.getInitialBoard();
+            // params.stateBeforeMove is null only in the 2nd move
+            // (and there are no animations to show in the initial move since we're simply setting the board)
+            game.board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
             // We calculate the AI move only after the animation finishes,
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.  
@@ -1227,9 +1237,13 @@ var game;
                 game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
                 style['z-index'] = 20;
+                // Slightly bigger shadow (as if it's closer to you).
                 var filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
                 style['filter'] = filter;
                 style['-webkit-filter'] = filter;
+                var transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)
+                style['transform'] = transform;
+                style['-webkit-transform'] = transform;
                 setDndElemPos(dndPos);
             }
         }
@@ -1442,7 +1456,7 @@ var aiService;
                 // We need to make another jump: update currentBoard, currentPos, nextPos
                 currentBoard = iMove.stateAfterMove.board;
                 currentPos = nextPos;
-                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0];
+                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move
             } while (true);
             allPossibleMoves.push(miniMove);
         }

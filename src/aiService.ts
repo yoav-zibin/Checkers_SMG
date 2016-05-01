@@ -132,7 +132,7 @@ module aiService {
         // We need to make another jump: update currentBoard, currentPos, nextPos
         currentBoard = iMove.stateAfterMove.board;
         currentPos = nextPos;
-        nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0];
+        nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move
       } while (true);
       allPossibleMoves.push(miniMove);
     }

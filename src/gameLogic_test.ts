@@ -807,6 +807,32 @@ let endGameForBlack2: Board = [
       ], WHITE_TURN_INDEX, NO_ONE_WINS);  
   });
 
+
+  it("Even if the jump ends in victory, if there are more jumps then they are mandatory", function () {
+    expectMove(OK, BLACK_TURN_INDEX, 
+      [
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","WM","--","BM","--","DS","--","DS"],
+        ["DS","--","BM","--","DS","--","BM","--"],
+        ["--","WM","--","DS","--","BM","--","DS"],
+        ["WM","--","DS","--","DS","--","DS","--"]
+      ],
+        {row: 3, col: 2}, {row: 5, col: 0},
+      [
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","DS","--"],
+        ["--","DS","--","DS","--","DS","--","DS"],
+        ["BM","--","DS","--","DS","--","DS","--"],
+        ["--","DS","--","BM","--","DS","--","DS"],
+        ["BM","--","BM","--","DS","--","BM","--"],
+        ["--","WM","--","DS","--","BM","--","DS"],
+        ["WM","--","DS","--","DS","--","DS","--"]
+      ], BLACK_TURN_INDEX, NO_ONE_WINS);  
+  });
+
   
   it('Sample game', function () {
     // Sample game: http://en.wikipedia.org/wiki/English_draughts#Sample_game

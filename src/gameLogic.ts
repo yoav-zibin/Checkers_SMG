@@ -870,7 +870,6 @@ module gameLogic {
           let isAJumpMove: boolean = false,
               isASimpleMove: boolean = false,
               possibleSimpleMoves: BoardDelta[],
-              possibleJumpMoves: BoardDelta[],
               winner: string,
               jumpedCoord: BoardDelta;
 
@@ -913,7 +912,7 @@ module gameLogic {
             }
           } else if (isAJumpMove) {
             // Jump move
-            possibleJumpMoves = getJumpMoves(board, fromDelta,
+            let possibleJumpMoves = getJumpMoves(board, fromDelta,
                 turnIndexBeforeMove);
             // The move should exist in the possible jump moves.
             if (!doesContainMove(possibleJumpMoves, toDelta)) {
@@ -961,9 +960,11 @@ module gameLogic {
            ********************************************************************/
 
           winner = getWinner(board, turnIndexBeforeMove);
+          let playerHasMoreJumpMoves = isAJumpMove &&
+              getJumpMoves(board, toDelta, turnIndexBeforeMove).length > 0;
           let endMatchScores: number[];
           let turnIndexAfterMove: number;
-          if (winner !== '') {
+          if (winner !== '' && !playerHasMoreJumpMoves) {
             // Has a winner
             // Game over.
             turnIndexAfterMove = -1;
@@ -971,9 +972,7 @@ module gameLogic {
           } else {
             // Game continues.
             endMatchScores = null;
-            possibleJumpMoves = getJumpMoves(board, toDelta,
-                turnIndexBeforeMove);
-            if (isAJumpMove && possibleJumpMoves.length > 0) {
+            if (playerHasMoreJumpMoves) {
               if (!isToKingsRow || originalKind === CONSTANTS.KING) {
                 // If the same piece can make any more jump moves and it does
                 // not enter the kings row, then the next turn remains
@@ -1007,6 +1006,10 @@ module gameLogic {
           return megaMove;
         }
         
+        export function createInitialMove(): IMove {
+          return {endMatchScores: null, turnIndexAfterMove: 0, 
+              stateAfterMove: {miniMoves: [], board: getInitialBoard()}};  
+        }
 
         export function checkMoveOk(stateTransition: IStateTransition): void {
           // We can assume that turnIndexBeforeMove and stateBeforeMove are legal, and we need
@@ -1014,6 +1017,10 @@ module gameLogic {
           let turnIndexBeforeMove = stateTransition.turnIndexBeforeMove;
           let stateBeforeMove: IState = stateTransition.stateBeforeMove;
           let move: IMove = stateTransition.move;
+          if (!stateBeforeMove && turnIndexBeforeMove === 0 &&
+              angular.equals(createInitialMove(), move)) {
+            return;
+          }
           let stateAfterMove: IState = move.stateAfterMove;
           let board: Board = stateBeforeMove ? stateBeforeMove.board : null;
           let expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);

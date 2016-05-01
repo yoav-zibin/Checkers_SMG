@@ -147,11 +147,11 @@ module game {
   }
   
   function advanceToNextAnimation() {
-    if (remainingAnimations.length == 0) return;
-    
-    let miniMove = remainingAnimations.shift();
-    let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
-    board = iMove.stateAfterMove.board;
+    if (remainingAnimations.length > 0) {
+      let miniMove = remainingAnimations.shift();
+      let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
+      board = iMove.stateAfterMove.board;
+    }
     if (remainingAnimations.length == 0) {
       clearAnimationInterval();
       // Checking we got to the corrent board
@@ -179,16 +179,15 @@ module game {
     //player's view, the board always face towards him/her;
     shouldRotateBoard = params.playMode === 1;
     
-    clearAnimationInterval();
+    clearAnimationInterval();  
+    remainingAnimations = [];
     if (isFirstMove()) {
-      board = gameLogic.getInitialBoard();  
-      remainingAnimations = [];
-      // This is the first move in the match, so
-      // there is not going to be an animation, so
-      // call maybeSendComputerMove() now (can happen in ?onlyAIs mode)
-      maybeSendComputerMove();
+      board = gameLogic.getInitialBoard();
+      if (isMyTurn()) makeMove(gameLogic.createInitialMove());
     } else {
-      board = params.stateBeforeMove ? params.stateBeforeMove.board : gameLogic.getInitialBoard();
+      // params.stateBeforeMove is null only in the 2nd move
+      // (and there are no animations to show in the initial move since we're simply setting the board)
+      board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
       // We calculate the AI move only after the animation finishes,
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.  

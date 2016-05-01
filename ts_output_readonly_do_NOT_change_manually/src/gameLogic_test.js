@@ -718,6 +718,27 @@ describe('gameLogic unit tests:', function () {
             ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--']
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
+    it("Even if the jump ends in victory, if there are more jumps then they are mandatory", function () {
+        expectMove(OK, BLACK_TURN_INDEX, [
+            ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
+            ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
+            ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
+            ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
+            ["--", "WM", "--", "BM", "--", "DS", "--", "DS"],
+            ["DS", "--", "BM", "--", "DS", "--", "BM", "--"],
+            ["--", "WM", "--", "DS", "--", "BM", "--", "DS"],
+            ["WM", "--", "DS", "--", "DS", "--", "DS", "--"]
+        ], { row: 3, col: 2 }, { row: 5, col: 0 }, [
+            ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
+            ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
+            ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
+            ["BM", "--", "DS", "--", "DS", "--", "DS", "--"],
+            ["--", "DS", "--", "BM", "--", "DS", "--", "DS"],
+            ["BM", "--", "BM", "--", "DS", "--", "BM", "--"],
+            ["--", "WM", "--", "DS", "--", "BM", "--", "DS"],
+            ["WM", "--", "DS", "--", "DS", "--", "DS", "--"]
+        ], BLACK_TURN_INDEX, NO_ONE_WINS);
+    });
     it('Sample game', function () {
         // Sample game: http://en.wikipedia.org/wiki/English_draughts#Sample_game
         function idToDelta(id) {
@@ -845,8 +866,8 @@ describe('gameLogic unit tests:', function () {
         var turn = BLACK_TURN_INDEX;
         var movesNum = moves.length;
         expect(movesNum).toBe(46 * 2 + 1); // Black 46th move ends the game.
-        for (var _i = 0; _i < moves.length; _i++) {
-            var move = moves[_i];
+        for (var _i = 0, moves_1 = moves; _i < moves_1.length; _i++) {
+            var move = moves_1[_i];
             var fromDelta = idToDelta(move[0]);
             var toDelta = idToDelta(move[1]);
             var m = gameLogic.createMove(board, [{ fromDelta: fromDelta, toDelta: toDelta }], turn);
