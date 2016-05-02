@@ -1238,9 +1238,9 @@ var game;
                 var style = game.dndElem.style;
                 style['z-index'] = 20;
                 // Slightly bigger shadow (as if it's closer to you).
-                var filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+                /*let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
                 style['filter'] = filter;
-                style['-webkit-filter'] = filter;
+                style['-webkit-filter'] = filter;*/
                 var transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)
                 style['transform'] = transform;
                 style['-webkit-transform'] = transform;

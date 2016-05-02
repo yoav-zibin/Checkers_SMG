@@ -30,8 +30,8 @@ body {
   height: 100%;
   position: absolute;
   z-index: 10;
-  -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
-  filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+  /*-webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+  filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);*/
 }
 
 td {
