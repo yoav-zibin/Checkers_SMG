@@ -37,6 +37,8 @@ module game {
   export let board: Board = null;
   export let shouldRotateBoard: boolean = false;
   export let didMakeMove: boolean = false; // You can only make one move per updateUI
+  export let humanMiniMoves: MiniMove[] = []; // We collect all the mini-moves into one mega-move.  
+  export let lastHumanMove: IMove = null; // We don't animate moves we just made.
   export let remainingAnimations: MiniMove[] = [];
   export let animationInterval: ng.IPromise<any> = null;
   // for drag-n-drop and ai move animations
@@ -148,6 +150,11 @@ module game {
   
   function advanceToNextAnimation() {
     if (remainingAnimations.length == 0) {
+      // Checking we got to the corrent board
+      let expectedBoard = currentUpdateUI.move.stateAfterMove.board;
+      if (!angular.equals(board, expectedBoard)) {
+        throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
+      }
       clearAnimationInterval();
       maybeSendComputerMove();
     }
@@ -155,13 +162,6 @@ module game {
       let miniMove = remainingAnimations.shift();
       let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
       board = iMove.stateAfterMove.board;
-    }
-    if (remainingAnimations.length == 0) {
-      // Checking we got to the corrent board
-      let expectedBoard = currentUpdateUI.move.stateAfterMove.board;
-      if (!angular.equals(board, expectedBoard)) {
-        throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
-      }
     }
   }
 
@@ -175,6 +175,10 @@ module game {
     didMakeMove = false; // Only one move per updateUI
     currentUpdateUI = params;
     clearDragNDrop();
+    humanMiniMoves = [];
+    // We show animations if it's a non-human move or a move made by our opponents.
+    let shouldAnimate = !angular.equals(params.move, lastHumanMove);
+    lastHumanMove = null;
 
     //Rotate the board 180 degrees, hence in the point of current
     //player's view, the board always face towards him/her;
@@ -185,6 +189,9 @@ module game {
     if (isFirstMove()) {
       board = gameLogic.getInitialBoard();
       if (isMyTurn()) makeMove(gameLogic.createInitialMove());
+    } else if (!shouldAnimate) {
+      board = params.move.stateAfterMove.board;
+      animationInterval = $interval(advanceToNextAnimation, 600); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
     } else {
       // params.stateBeforeMove is null only in the 2nd move
       // (and there are no animations to show in the initial move since we're simply setting the board)
@@ -288,18 +295,28 @@ module game {
     if (!isHumanTurn()) {
       return;
     }
-    // TODO collect minimoves and make a mega one.
+    // We collect minimoves and make a mega one.
+    let miniMove: MiniMove = {fromDelta: fromDelta, toDelta: toDelta};
     let nextMove: IMove = null;
     try {
-      nextMove = gameLogic.createMove(angular.copy(board),
-          [{fromDelta: fromDelta, toDelta: toDelta}], yourPlayerIndex());
+      nextMove = gameLogic.createMove(board,
+          [miniMove], yourPlayerIndex());
     } catch (e) {
       log.info(["Move is illegal:", e]);
       return;
     }
-
     // Move is legal, make it!
-    makeMove(nextMove);
+    $rootScope.$apply(()=>{
+      board = nextMove.stateAfterMove.board;
+      humanMiniMoves.push(miniMove);
+      // We finished our mega-move if it's now someone elses turn or game ended.
+      if (nextMove.turnIndexAfterMove !== currentUpdateUI.move.turnIndexAfterMove) {
+        lastHumanMove = nextMove = gameLogic.createMove(
+            isFirstMove() ? gameLogic.getInitialBoard() : currentUpdateUI.move.stateAfterMove.board,
+            humanMiniMoves, yourPlayerIndex());
+        makeMove(lastHumanMove);
+      }
+    });
   }
 
   /**

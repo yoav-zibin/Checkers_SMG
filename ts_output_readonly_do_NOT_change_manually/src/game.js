@@ -12,6 +12,8 @@ var game;
     game.board = null;
     game.shouldRotateBoard = false;
     game.didMakeMove = false; // You can only make one move per updateUI
+    game.humanMiniMoves = []; // We collect all the mini-moves into one mega-move.  
+    game.lastHumanMove = null; // We don't animate moves we just made.
     game.remainingAnimations = [];
     game.animationInterval = null;
     // for drag-n-drop and ai move animations
@@ -117,6 +119,11 @@ var game;
     }
     function advanceToNextAnimation() {
         if (game.remainingAnimations.length == 0) {
+            // Checking we got to the corrent board
+            var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
+            if (!angular.equals(game.board, expectedBoard)) {
+                throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
+            }
             clearAnimationInterval();
             maybeSendComputerMove();
         }
@@ -124,13 +131,6 @@ var game;
             var miniMove = game.remainingAnimations.shift();
             var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
             game.board = iMove.stateAfterMove.board;
-        }
-        if (game.remainingAnimations.length == 0) {
-            // Checking we got to the corrent board
-            var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
-            if (!angular.equals(game.board, expectedBoard)) {
-                throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
-            }
         }
     }
     /**
@@ -143,6 +143,10 @@ var game;
         game.didMakeMove = false; // Only one move per updateUI
         game.currentUpdateUI = params;
         clearDragNDrop();
+        game.humanMiniMoves = [];
+        // We show animations if it's a non-human move or a move made by our opponents.
+        var shouldAnimate = !angular.equals(params.move, game.lastHumanMove);
+        game.lastHumanMove = null;
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
         game.shouldRotateBoard = params.playMode === 1;
@@ -152,6 +156,10 @@ var game;
             game.board = gameLogic.getInitialBoard();
             if (isMyTurn())
                 makeMove(gameLogic.createInitialMove());
+        }
+        else if (!shouldAnimate) {
+            game.board = params.move.stateAfterMove.board;
+            game.animationInterval = $interval(advanceToNextAnimation, 600); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
         }
         else {
             // params.stateBeforeMove is null only in the 2nd move
@@ -248,17 +256,26 @@ var game;
         if (!isHumanTurn()) {
             return;
         }
-        // TODO collect minimoves and make a mega one.
+        // We collect minimoves and make a mega one.
+        var miniMove = { fromDelta: fromDelta, toDelta: toDelta };
         var nextMove = null;
         try {
-            nextMove = gameLogic.createMove(angular.copy(game.board), [{ fromDelta: fromDelta, toDelta: toDelta }], yourPlayerIndex());
+            nextMove = gameLogic.createMove(game.board, [miniMove], yourPlayerIndex());
         }
         catch (e) {
             log.info(["Move is illegal:", e]);
             return;
         }
         // Move is legal, make it!
-        makeMove(nextMove);
+        $rootScope.$apply(function () {
+            game.board = nextMove.stateAfterMove.board;
+            game.humanMiniMoves.push(miniMove);
+            // We finished our mega-move if it's now someone elses turn or game ended.
+            if (nextMove.turnIndexAfterMove !== game.currentUpdateUI.move.turnIndexAfterMove) {
+                game.lastHumanMove = nextMove = gameLogic.createMove(isFirstMove() ? gameLogic.getInitialBoard() : game.currentUpdateUI.move.stateAfterMove.board, game.humanMiniMoves, yourPlayerIndex());
+                makeMove(game.lastHumanMove);
+            }
+        });
     }
     /**
      * Convert the delta to UI state index
