@@ -1036,7 +1036,10 @@ var game;
         clearDragNDrop();
         game.humanMiniMoves = [];
         // We show animations if it's a non-human move or a move made by our opponents.
-        var shouldAnimate = !angular.equals(params.move, game.lastHumanMove);
+        // The move in multiplayer game have slightly different endMatchScores:
+        // "endMatchScores":null  vs completley missing endMatchScores.
+        // It's enought to check stateAfterMove anyway.
+        var shouldAnimate = !game.lastHumanMove || !angular.equals(params.move.stateAfterMove, game.lastHumanMove.stateAfterMove);
         game.lastHumanMove = null;
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
