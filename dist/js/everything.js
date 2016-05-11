@@ -1007,19 +1007,21 @@ var game;
         }
     }
     function advanceToNextAnimation() {
+        if (game.remainingAnimations.length == 0) {
+            clearAnimationInterval();
+            maybeSendComputerMove();
+        }
         if (game.remainingAnimations.length > 0) {
             var miniMove = game.remainingAnimations.shift();
             var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
             game.board = iMove.stateAfterMove.board;
         }
         if (game.remainingAnimations.length == 0) {
-            clearAnimationInterval();
             // Checking we got to the corrent board
             var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
             if (!angular.equals(game.board, expectedBoard)) {
                 throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
             }
-            maybeSendComputerMove();
         }
     }
     /**
@@ -1030,7 +1032,6 @@ var game;
     function updateUI(params) {
         log.info("Game got updateUI:", params);
         game.didMakeMove = false; // Only one move per updateUI
-        game.isHelpModalShown = false;
         game.currentUpdateUI = params;
         clearDragNDrop();
         //Rotate the board 180 degrees, hence in the point of current
@@ -1051,13 +1052,13 @@ var game;
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.  
             game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
-            game.animationInterval = $interval(advanceToNextAnimation, 500);
+            game.animationInterval = $interval(advanceToNextAnimation, 600);
         }
     }
     function maybeSendComputerMove() {
         if (!isComputerTurn())
             return;
-        var move = aiService.createComputerMove(game.board, yourPlayerIndex(), { millisecondsLimit: 1000 });
+        var move = aiService.createComputerMove(game.board, yourPlayerIndex(), { millisecondsLimit: 500 });
         log.info("Computer move: ", move);
         makeMove(move);
     }
@@ -1238,7 +1239,12 @@ var game;
                 var style = game.dndElem.style;
                 style['z-index'] = 20;
                 // Slightly bigger shadow (as if it's closer to you).
-                /*let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+                /*
+                .piece class used to have:
+                 -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+                 filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+                but it's making animations&dragging very slow, even on iphone6.
+                let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
                 style['filter'] = filter;
                 style['-webkit-filter'] = filter;*/
                 var transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)

@@ -147,19 +147,21 @@ module game {
   }
   
   function advanceToNextAnimation() {
+    if (remainingAnimations.length == 0) {
+      clearAnimationInterval();
+      maybeSendComputerMove();
+    }
     if (remainingAnimations.length > 0) {
       let miniMove = remainingAnimations.shift();
       let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
       board = iMove.stateAfterMove.board;
     }
     if (remainingAnimations.length == 0) {
-      clearAnimationInterval();
       // Checking we got to the corrent board
       let expectedBoard = currentUpdateUI.move.stateAfterMove.board;
       if (!angular.equals(board, expectedBoard)) {
         throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
       }
-      maybeSendComputerMove();
     }
   }
 
@@ -171,7 +173,6 @@ module game {
   function updateUI(params: IUpdateUI): void {
     log.info("Game got updateUI:", params);
     didMakeMove = false; // Only one move per updateUI
-    isHelpModalShown = false;
     currentUpdateUI = params;
     clearDragNDrop();
 
@@ -192,13 +193,13 @@ module game {
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.  
       remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);  
-      animationInterval = $interval(advanceToNextAnimation, 500);
+      animationInterval = $interval(advanceToNextAnimation, 600);
     }
   }
   
   function maybeSendComputerMove() {
     if (!isComputerTurn()) return;
-    let move = aiService.createComputerMove(board, yourPlayerIndex(), {millisecondsLimit: 1000});
+    let move = aiService.createComputerMove(board, yourPlayerIndex(), {millisecondsLimit: 500});
     log.info("Computer move: ", move);
     makeMove(move);
   }
@@ -399,7 +400,12 @@ module game {
         let style: any = dndElem.style;
         style['z-index'] = 20;
         // Slightly bigger shadow (as if it's closer to you).
-        /*let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+        /*
+        .piece class used to have:
+         -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+         filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+        but it's making animations&dragging very slow, even on iphone6.
+        let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
         style['filter'] = filter;
         style['-webkit-filter'] = filter;*/
         let transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)

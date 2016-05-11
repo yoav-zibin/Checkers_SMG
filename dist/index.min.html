@@ -15,10 +15,10 @@
   <link crossorigin="anonymous" rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
 
   <!-- The crossorigin attribute controls, for scripts that are obtained from other origins, whether error information will be exposed. -->
-  <script crossorigin="anonymous" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular.min.js"></script>
+  <script crossorigin="anonymous" src="http://yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js"></script>
 
   <!-- For the game rules/instructions, I use carousel from Angular UI + Bootstrap + ngTouch for swiping the rules slides. -->
-  <script crossorigin="anonymous" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.3/angular-touch.min.js"></script>
+  <script crossorigin="anonymous" src="http://yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.min.js"></script>
   <script crossorigin="anonymous" src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js"></script>
 
   <script crossorigin="anonymous" src="http://yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js"></script>
@@ -27,8 +27,6 @@
 
 </head>
 <div ng-cloak >
-  <div id="e2e_test_open_rules_modal" class="help-tip" ng-click="game.isHelpModalShown = true" aria-hidden="true"></div>
-
   <div class="overlayModal" ng-click="game.clickedOnModal($event)"
       ng-class="{zeroOpacity: !game.isHelpModalShown, oneOpacity: game.isHelpModalShown}" aria-hidden="true">
     <div class="modal-dialog">
