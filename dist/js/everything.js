@@ -1253,7 +1253,7 @@ var game;
         if (type === 'touchmove') {
             // Dragging around
             if (game.dndStartPos)
-                setDndElemPos(dndPos);
+                setDndElemPos(dndPos, cellSize);
             return;
         }
         var delta = {
@@ -1267,23 +1267,22 @@ var game;
                 isHumanTurn() &&
                 isOwnColor(rotatedDelta) &&
                 canDrag(delta.row, delta.col)) {
-                game.dndStartPos = angular.copy(delta);
+                game.dndStartPos = delta;
                 game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
                 style['z-index'] = 20;
                 // Slightly bigger shadow (as if it's closer to you).
-                /*
-                .piece class used to have:
-                 -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
-                 filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
-                but it's making animations&dragging very slow, even on iphone6.
-                let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
-                style['filter'] = filter;
-                style['-webkit-filter'] = filter;*/
+                //.piece class used to have:
+                // -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+                // filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+                // but it's making animations&dragging very slow, even on iphone6.
+                //let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+                //style['filter'] = filter;
+                //style['-webkit-filter'] = filter;
                 var transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)
                 style['transform'] = transform;
                 style['-webkit-transform'] = transform;
-                setDndElemPos(dndPos);
+                setDndElemPos(dndPos, cellSize);
             }
             return;
         }
@@ -1292,7 +1291,7 @@ var game;
             var from = { row: game.dndStartPos.row, col: game.dndStartPos.col };
             var to = { row: delta.row, col: delta.col };
             makeMiniMove(rotate(from), rotate(to));
-            setDndElemPos(getCellPos(game.dndStartPos.row, game.dndStartPos.col));
+            setDndElemPos(getCellPos(game.dndStartPos.row, game.dndStartPos.col, cellSize), cellSize);
             clearDragNDrop();
         }
         // Clean up
@@ -1330,11 +1329,10 @@ var game;
     /**
      * Set the TopLeft of the element.
      */
-    function setDndElemPos(pos) {
-        var size = getCellSize();
-        var top = size.height / 10;
-        var left = size.width / 10;
-        var originalSize = getCellPos(game.dndStartPos.row, game.dndStartPos.col);
+    function setDndElemPos(pos, cellSize) {
+        var top = cellSize.height / 10;
+        var left = cellSize.width / 10;
+        var originalSize = getCellPos(game.dndStartPos.row, game.dndStartPos.col, cellSize);
         if (game.dndElem !== null) {
             game.dndElem.style.left = (pos.left - originalSize.left + left) + "px";
             game.dndElem.style.top = (pos.top - originalSize.top + top) + "px";
@@ -1343,10 +1341,9 @@ var game;
     /**
      * Get the position of the cell.
      */
-    function getCellPos(row, col) {
-        var size = getCellSize();
-        var top = row * size.height;
-        var left = col * size.width;
+    function getCellPos(row, col, cellSize) {
+        var top = row * cellSize.height;
+        var left = col * cellSize.width;
         var pos = { top: top, left: left };
         return pos;
     }
