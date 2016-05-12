@@ -170,7 +170,7 @@ module game {
    * @param params
    */
   // for drag-n-drop and ai move animations
-  function updateUI(params: IUpdateUI): void {
+  export function updateUI(params: IUpdateUI): void {
     log.info("Game got updateUI:", params);
     didMakeMove = false; // Only one move per updateUI
     currentUpdateUI = params;

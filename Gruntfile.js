@@ -15,7 +15,6 @@ module.exports = function(grunt) {
   var src_img_size = "1024x1024";
   var directory = "auto_resize_images";
   var output_directory = directory + "/output";
-  var padColor = "white";
   var desired_sizes = [
     "1024x1024",
     "1024x500",
@@ -102,8 +101,7 @@ module.exports = function(grunt) {
     
     commands.push(
       "convert -define jpeg:size=" + src_img_size + " " + directory + "/src.png -thumbnail '" +
-         width + 'x' + height + ">' -background " +
-         padColor + " -gravity center -colors 256 -quality 90 -depth 8 -extent " + width + 'x' + height + " " + output_directory + '/' + desired_size + ".png");
+         width + 'x' + height + ">' -background none -gravity center -colors 256 -quality 90 -depth 8 -extent " + width + 'x' + height + " " + output_directory + '/' + desired_size + ".png");
   }
   commands.push('rm -rf ' + output_directory + '/temp');
   var auto_resize_images_command = commands.join(" && ");

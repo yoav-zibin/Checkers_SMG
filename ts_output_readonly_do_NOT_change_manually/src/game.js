@@ -175,6 +175,7 @@ var game;
             game.animationInterval = $interval(advanceToNextAnimation, 600);
         }
     }
+    game.updateUI = updateUI;
     function maybeSendComputerMove() {
         if (!isComputerTurn())
             return;
