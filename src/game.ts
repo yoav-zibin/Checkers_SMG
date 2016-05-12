@@ -114,6 +114,9 @@ module game {
    * Send initial move
    */
   export function init() {
+    gameArea = document.getElementById("gameArea");
+    if (!gameArea) throw new Error("Can't find gameArea div!");
+    
     translate.setTranslations(getTranslations());
     translate.setLanguage('en');
     
@@ -199,6 +202,10 @@ module game {
       // params.stateBeforeMove is null only in the 2nd move
       // (and there are no animations to show in the initial move since we're simply setting the board)
       board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
+      
+      // TODO: temporary code because I changed this logic on May 2016 (delete in August).
+      if (!params.stateBeforeMove && !angular.equals(board, gameLogic.getInitialBoard())) board = gameLogic.getInitialBoard(); 
+      
       // We calculate the AI move only after the animation finishes,
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.  
@@ -240,7 +247,7 @@ module game {
   
   function isHumanTurn() {
     return isMyTurn() && !isComputer() &&
-      remainingAnimations.length == 0; // you can only move after all animations are over.
+      animationInterval == null; // you can only move after all animations are over.
   }
   
   function isMyTurn() {
@@ -315,7 +322,7 @@ module game {
       // We finished our mega-move if it's now someone elses turn or game ended.
       if (nextMove.turnIndexAfterMove !== currentUpdateUI.move.turnIndexAfterMove) {
         lastHumanMove = nextMove = gameLogic.createMove(
-            isFirstMove() ? gameLogic.getInitialBoard() : currentUpdateUI.move.stateAfterMove.board,
+            currentUpdateUI.move.stateAfterMove.board,
             humanMiniMoves, yourPlayerIndex());
         makeMove(lastHumanMove);
       }
@@ -393,7 +400,6 @@ module game {
   }
 
   function handleDragEvent(type: string, cx: number, cy: number) {
-    gameArea = document.getElementById("gameArea");
     let cellSize: CellSize = getCellSize();
 
     // Make sure the player can not drag the piece outside of the board
@@ -403,6 +409,12 @@ module game {
         top: y - cellSize.height * 0.605,
         left: x - cellSize.width * 0.605
       };
+      
+    if (type === 'touchmove') {
+      // Dragging around
+      if (dndStartPos) setDndElemPos(dndPos, cellSize);
+      return;
+    }
 
     let delta: BoardDelta = {
       row: Math.floor(CONSTANTS.ROW * y / gameArea.clientHeight),
@@ -410,42 +422,41 @@ module game {
     };
     let rotatedDelta: BoardDelta = rotate(delta);
 
-    if (type === "touchstart" && canDrag(delta.row, delta.col)) {
+    if (type === "touchstart") {
       // If a piece is dragged, store the piece element
       if (hasPiece(delta.row, delta.col) &&
           isHumanTurn() &&
-          isOwnColor(rotatedDelta)) {
-        dndStartPos = angular.copy(delta);
+          isOwnColor(rotatedDelta) &&
+          canDrag(delta.row, delta.col)) {
+        dndStartPos = delta;
         dndElem = document.getElementById("img_" + dndStartPos.row + "_" + dndStartPos.col);
         let style: any = dndElem.style;
         style['z-index'] = 20;
         // Slightly bigger shadow (as if it's closer to you).
-        /*
-        .piece class used to have:
-         -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
-         filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
-        but it's making animations&dragging very slow, even on iphone6.
-        let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
-        style['filter'] = filter;
-        style['-webkit-filter'] = filter;*/
+        //.piece class used to have:
+        // -webkit-filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+        // filter: brightness(100%) drop-shadow(0.1rem 0.1rem 0.1rem black);
+        // but it's making animations&dragging very slow, even on iphone6.
+        //let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
+        //style['filter'] = filter;
+        //style['-webkit-filter'] = filter;
         let transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)
         style['transform'] = transform;
         style['-webkit-transform'] = transform;
-        setDndElemPos(dndPos);
+        setDndElemPos(dndPos, cellSize);
       }
-    } else if (type === "touchend" && dndStartPos) {
+      return;
+    } 
+    
+    if (type === "touchend" && dndStartPos) {
       // Drop a piece
       let from = {row: dndStartPos.row, col: dndStartPos.col};
       let to = {row: delta.row, col: delta.col};
 
       makeMiniMove(rotate(from), rotate(to));
 
-      setDndElemPos(getCellPos(dndStartPos.row, dndStartPos.col));
-      clearDragNDrop();
-      
-    } else if (type === 'touchmove' && dndStartPos) {
-      // Dragging around
-      setDndElemPos(dndPos);
+      setDndElemPos(getCellPos(dndStartPos.row, dndStartPos.col, cellSize), cellSize);
+      clearDragNDrop();   
     }
 
     // Clean up
@@ -492,12 +503,11 @@ module game {
   /**
    * Set the TopLeft of the element.
    */
-  function setDndElemPos(pos: TopLeft): void {
-    let size: CellSize = getCellSize();
-    let top: number = size.height / 10;
-    let left: number = size.width / 10;
+  function setDndElemPos(pos: TopLeft, cellSize: CellSize): void {
+    let top: number = cellSize.height / 10;
+    let left: number = cellSize.width / 10;
 
-    let originalSize = getCellPos(dndStartPos.row, dndStartPos.col);
+    let originalSize = getCellPos(dndStartPos.row, dndStartPos.col, cellSize);
     if (dndElem !== null) {
       dndElem.style.left = (pos.left - originalSize.left + left) + "px";
       dndElem.style.top = (pos.top - originalSize.top + top) + "px";
@@ -507,10 +517,9 @@ module game {
   /**
    * Get the position of the cell.
    */
-  function getCellPos(row: number, col: number): TopLeft {
-    let size: CellSize = getCellSize();
-    let top: number = row * size.height;
-    let left: number = col * size.width;
+  function getCellPos(row: number, col: number, cellSize: CellSize): TopLeft {
+    let top: number = row * cellSize.height;
+    let left: number = col * cellSize.width;
     let pos: TopLeft = {top: top, left: left};
     return pos;
   }

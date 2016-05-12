@@ -978,6 +978,9 @@ var game;
      * Send initial move
      */
     function init() {
+        gameArea = document.getElementById("gameArea");
+        if (!gameArea)
+            throw new Error("Can't find gameArea div!");
         translate.setTranslations(getTranslations());
         translate.setLanguage('en');
         console.log("Translation of 'CHECKERS_RULES_TITLE' is " + translate('CHECKERS_RULES_TITLE'));
@@ -1059,6 +1062,9 @@ var game;
             // params.stateBeforeMove is null only in the 2nd move
             // (and there are no animations to show in the initial move since we're simply setting the board)
             game.board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
+            // TODO: temporary code because I changed this logic on May 2016 (delete in August).
+            if (!params.stateBeforeMove && !angular.equals(game.board, gameLogic.getInitialBoard()))
+                game.board = gameLogic.getInitialBoard();
             // We calculate the AI move only after the animation finishes,
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.  
@@ -1066,6 +1072,7 @@ var game;
             game.animationInterval = $interval(advanceToNextAnimation, 600);
         }
     }
+    game.updateUI = updateUI;
     function maybeSendComputerMove() {
         if (!isComputerTurn())
             return;
@@ -1094,7 +1101,7 @@ var game;
     }
     function isHumanTurn() {
         return isMyTurn() && !isComputer() &&
-            game.remainingAnimations.length == 0; // you can only move after all animations are over.
+            game.animationInterval == null; // you can only move after all animations are over.
     }
     function isMyTurn() {
         return !game.didMakeMove &&
@@ -1166,7 +1173,7 @@ var game;
             game.humanMiniMoves.push(miniMove);
             // We finished our mega-move if it's now someone elses turn or game ended.
             if (nextMove.turnIndexAfterMove !== game.currentUpdateUI.move.turnIndexAfterMove) {
-                game.lastHumanMove = nextMove = gameLogic.createMove(isFirstMove() ? gameLogic.getInitialBoard() : game.currentUpdateUI.move.stateAfterMove.board, game.humanMiniMoves, yourPlayerIndex());
+                game.lastHumanMove = nextMove = gameLogic.createMove(game.currentUpdateUI.move.stateAfterMove.board, game.humanMiniMoves, yourPlayerIndex());
                 makeMove(game.lastHumanMove);
             }
         });
@@ -1235,7 +1242,6 @@ var game;
         game.dndElem = null;
     }
     function handleDragEvent(type, cx, cy) {
-        gameArea = document.getElementById("gameArea");
         var cellSize = getCellSize();
         // Make sure the player can not drag the piece outside of the board
         var x = Math.min(Math.max(cx - gameArea.offsetLeft, cellSize.width / 2), gameArea.clientWidth - cellSize.width / 2);
@@ -1244,16 +1250,23 @@ var game;
             top: y - cellSize.height * 0.605,
             left: x - cellSize.width * 0.605
         };
+        if (type === 'touchmove') {
+            // Dragging around
+            if (game.dndStartPos)
+                setDndElemPos(dndPos);
+            return;
+        }
         var delta = {
             row: Math.floor(CONSTANTS.ROW * y / gameArea.clientHeight),
             col: Math.floor(CONSTANTS.COLUMN * x / gameArea.clientWidth)
         };
         var rotatedDelta = rotate(delta);
-        if (type === "touchstart" && canDrag(delta.row, delta.col)) {
+        if (type === "touchstart") {
             // If a piece is dragged, store the piece element
             if (hasPiece(delta.row, delta.col) &&
                 isHumanTurn() &&
-                isOwnColor(rotatedDelta)) {
+                isOwnColor(rotatedDelta) &&
+                canDrag(delta.row, delta.col)) {
                 game.dndStartPos = angular.copy(delta);
                 game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
@@ -1272,18 +1285,15 @@ var game;
                 style['-webkit-transform'] = transform;
                 setDndElemPos(dndPos);
             }
+            return;
         }
-        else if (type === "touchend" && game.dndStartPos) {
+        if (type === "touchend" && game.dndStartPos) {
             // Drop a piece
             var from = { row: game.dndStartPos.row, col: game.dndStartPos.col };
             var to = { row: delta.row, col: delta.col };
             makeMiniMove(rotate(from), rotate(to));
             setDndElemPos(getCellPos(game.dndStartPos.row, game.dndStartPos.col));
             clearDragNDrop();
-        }
-        else if (type === 'touchmove' && game.dndStartPos) {
-            // Dragging around
-            setDndElemPos(dndPos);
         }
         // Clean up
         if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
