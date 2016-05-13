@@ -92,7 +92,8 @@
     <div class="board_row" ng-repeat="row in [0, 1, 2, 3, 4, 5, 6, 7]"
          style="top: {{row * 12.5}}%">
       <div class='board_col' ng-repeat="col in [0, 1, 2, 3, 4, 5, 6, 7]"
-           style="left: {{col * 12.5}}%">
+           style="left: {{col * 12.5}}%"
+           ng-class="game.getSquareClass(row, col)">
         <div 
             id="{{'img_container_' + row + '_' + col}}"
             class="img_container" ng-class="game.getPieceContainerClass(row, col)">

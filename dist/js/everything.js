@@ -1239,6 +1239,28 @@ var game;
         return getAnimationClass(row, col);
     }
     game.getPieceContainerClass = getPieceContainerClass;
+    function getSquareClass(row, col) {
+        if (!game.dndStartPos) {
+            if (!canDrag({ row: row, col: col }))
+                return '';
+            return 'can_drag_from_square';
+        }
+        // Dragging now, let's find if you can drop there.
+        var fromDelta = rotate({ row: game.dndStartPos.row, col: game.dndStartPos.col });
+        var toDelta = rotate({ row: row, col: col });
+        if (!isHumanTurn()) {
+            return '';
+        }
+        var miniMove = { fromDelta: fromDelta, toDelta: toDelta };
+        try {
+            gameLogic.createMove(game.board, [miniMove], yourPlayerIndex());
+            return 'can_drop_on_square';
+        }
+        catch (e) {
+        }
+        return '';
+    }
+    game.getSquareClass = getSquareClass;
     function getPieceClass(row, col) {
         var avatarPieceSrc = getAvatarPieceSrc(row, col);
         var avatarPieceClass = '';
@@ -1314,12 +1336,9 @@ var game;
             row: Math.floor(CONSTANTS.ROW * y / gameArea.clientHeight),
             col: Math.floor(CONSTANTS.COLUMN * x / gameArea.clientWidth)
         };
-        var rotatedDelta = rotate(delta);
         if (type === "touchstart") {
             // If a piece is dragged, store the piece element
-            if (isHumanTurn() &&
-                isOwnColor(rotatedDelta) &&
-                canDrag(rotatedDelta)) {
+            if (canDrag(delta)) {
                 game.dndStartPos = delta;
                 game.dndElem = document.getElementById("img_container_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
@@ -1336,6 +1355,7 @@ var game;
                 style['transform'] = transform;
                 style['-webkit-transform'] = transform;
                 setDndElemPos(dndPos, cellSize);
+                $rootScope.$apply(); // To show the droppable squares, see .can_drop_on_square
             }
             return;
         }
@@ -1350,6 +1370,7 @@ var game;
         // Clean up
         if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
             clearDragNDrop();
+            $rootScope.$apply(); // To show the draggable squares, see .can_drag_from_square
         }
     }
     /**
@@ -1361,7 +1382,10 @@ var game;
     /**
      * Check if the piece can be dragged.
      */
-    function canDrag(rotatedDelta) {
+    function canDrag(delta) {
+        var rotatedDelta = rotate(delta);
+        if (!isHumanTurn() || !isOwnColor(rotatedDelta))
+            return false;
         if (!gameLogic.isOwnColor(yourPlayerIndex(), game.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
         }

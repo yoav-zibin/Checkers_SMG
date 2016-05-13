@@ -388,6 +388,27 @@ module game {
     return getAnimationClass(row, col);
   }
   
+  export function getSquareClass(row: number, col: number) {
+    if (!dndStartPos) {
+      if (!canDrag({row: row, col: col})) return '';
+      return 'can_drag_from_square';
+    }
+    // Dragging now, let's find if you can drop there.
+    let fromDelta = rotate({row: dndStartPos.row, col: dndStartPos.col});
+    let toDelta = rotate({row: row, col: col});
+    if (!isHumanTurn()) {
+      return '';
+    }
+    let miniMove: MiniMove = {fromDelta: fromDelta, toDelta: toDelta};
+    try {
+      gameLogic.createMove(board,
+          [miniMove], yourPlayerIndex());
+      return 'can_drop_on_square';
+    } catch (e) {
+    }
+    return '';
+  }
+  
   export function getPieceClass(row: number, col: number) {
     let avatarPieceSrc = getAvatarPieceSrc(row, col);
     let avatarPieceClass = '';
@@ -464,13 +485,10 @@ module game {
       row: Math.floor(CONSTANTS.ROW * y / gameArea.clientHeight),
       col: Math.floor(CONSTANTS.COLUMN * x / gameArea.clientWidth)
     };
-    let rotatedDelta: BoardDelta = rotate(delta);
 
     if (type === "touchstart") {
       // If a piece is dragged, store the piece element
-      if (isHumanTurn() &&
-          isOwnColor(rotatedDelta) &&
-          canDrag(rotatedDelta)) {
+      if (canDrag(delta)) {
         dndStartPos = delta;
         dndElem = document.getElementById("img_container_" + dndStartPos.row + "_" + dndStartPos.col);
         let style: any = dndElem.style;
@@ -487,6 +505,7 @@ module game {
         style['transform'] = transform;
         style['-webkit-transform'] = transform;
         setDndElemPos(dndPos, cellSize);
+        $rootScope.$apply(); // To show the droppable squares, see .can_drop_on_square
       }
       return;
     } 
@@ -505,6 +524,7 @@ module game {
     // Clean up
     if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
       clearDragNDrop();
+      $rootScope.$apply(); // To show the draggable squares, see .can_drag_from_square
     }
   }
 
@@ -520,7 +540,10 @@ module game {
   /**
    * Check if the piece can be dragged.
    */
-  function canDrag(rotatedDelta: BoardDelta): boolean {
+  function canDrag(delta: BoardDelta): boolean {
+    let rotatedDelta: BoardDelta = rotate(delta);
+    if (!isHumanTurn() || !isOwnColor(rotatedDelta)) return false;
+          
     if (!gameLogic.isOwnColor(yourPlayerIndex(), board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
       return false;
     }

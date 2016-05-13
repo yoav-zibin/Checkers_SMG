@@ -57,7 +57,12 @@ body {
   /*-webkit-filter: brightness(30%); filter: brightness(30%); */
   border: 3px solid #000;
 }
-
+.can_drag_from_square {
+  background: rgba(124,252,0,0.4);
+}
+.can_drop_on_square {
+  background: rgba(1255,255,0,0.4);
+}
 
 td {
   padding:0 5px 0 5px;
