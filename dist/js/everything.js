@@ -1321,7 +1321,7 @@ var game;
                 isOwnColor(rotatedDelta) &&
                 canDrag(rotatedDelta)) {
                 game.dndStartPos = delta;
-                game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
+                game.dndElem = document.getElementById("img_container_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
                 style['z-index'] = 20;
                 // Slightly bigger shadow (as if it's closer to you).

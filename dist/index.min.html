@@ -93,13 +93,15 @@
          style="top: {{row * 12.5}}%">
       <div class='board_col' ng-repeat="col in [0, 1, 2, 3, 4, 5, 6, 7]"
            style="left: {{col * 12.5}}%">
-        <div class="img_container" ng-class="game.getPieceContainerClass(row, col)">
+        <div 
+            id="{{'img_container_' + row + '_' + col}}"
+            class="img_container" ng-class="game.getPieceContainerClass(row, col)">
           <img ng-class="game.getPieceClass(row, col)"
+              id="{{'e2e_test_img_' + row + '_' + col}}"
               ng-if="game.getPieceSrc(row, col)"
               ng-src="{{game.getPieceSrc(row, col)}}" 
               onerror="game.onImgError()"
-              alt="Checkers piece"
-              id="{{'img_' + row + '_' + col}}">
+              alt="Checkers piece">
         </div>
       </div>
     </div>

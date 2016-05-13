@@ -472,7 +472,7 @@ module game {
           isOwnColor(rotatedDelta) &&
           canDrag(rotatedDelta)) {
         dndStartPos = delta;
-        dndElem = document.getElementById("img_" + dndStartPos.row + "_" + dndStartPos.col);
+        dndElem = document.getElementById("img_container_" + dndStartPos.row + "_" + dndStartPos.col);
         let style: any = dndElem.style;
         style['z-index'] = 20;
         // Slightly bigger shadow (as if it's closer to you).
