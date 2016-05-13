@@ -1211,6 +1211,9 @@ var game;
     }
     game.onImgError = onImgError;
     function isLocalTesting() { return location.protocol === "file:"; }
+    function hasAvatarImgUrl(avatarImageUrl) {
+        return avatarImageUrl && avatarImageUrl.indexOf('imgs/autoMatchAvatar.png') === -1;
+    }
     function getBoardAvatar() {
         if (game.hadLoadingError)
             return '';
@@ -1221,7 +1224,7 @@ var game;
         if (!myPlayerInfo)
             return '';
         var myAvatar = myPlayerInfo.avatarImageUrl;
-        if (!myAvatar)
+        if (!hasAvatarImgUrl(myAvatar))
             return '';
         // I only do it for FB users
         var match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
@@ -1286,7 +1289,7 @@ var game;
         if (!myPlayerInfo)
             return '';
         var avatarImageUrl = myPlayerInfo.avatarImageUrl;
-        return avatarImageUrl ? avatarImageUrl :
+        return hasAvatarImgUrl(avatarImageUrl) ? avatarImageUrl :
             !isLocalTesting() ? '' :
                 pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
     }

@@ -364,6 +364,9 @@ module game {
   }
   
   function isLocalTesting() { return location.protocol === "file:"; }
+  function hasAvatarImgUrl(avatarImageUrl: string) {
+    return avatarImageUrl && avatarImageUrl.indexOf('imgs/autoMatchAvatar.png') === -1;
+  }
   
   export function getBoardAvatar() {
     if (hadLoadingError) return '';
@@ -372,7 +375,7 @@ module game {
     let myPlayerInfo = currentUpdateUI.playersInfo[yourPlayerIndex()];
     if (!myPlayerInfo) return '';
     let myAvatar = myPlayerInfo.avatarImageUrl;
-    if (!myAvatar) return '';
+    if (!hasAvatarImgUrl(myAvatar)) return '';
     // I only do it for FB users
     let match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
     if (!match) return '';
@@ -432,7 +435,7 @@ module game {
     let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
     if (!myPlayerInfo) return '';
     let avatarImageUrl = myPlayerInfo.avatarImageUrl;
-    return avatarImageUrl ? avatarImageUrl : 
+    return hasAvatarImgUrl(avatarImageUrl) ? avatarImageUrl : 
       !isLocalTesting() ? '' :
       pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
   }
