@@ -200,7 +200,7 @@ module.exports = function(grunt) {
             "imgs/black_man.png",
             "imgs/white_cro.png",
             "imgs/black_cro.png",
-            "imgs/board.png",
+            "imgs/board.jpg",
           ],
           network: [
             'dist/everything.min.js.map',

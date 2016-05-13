@@ -992,14 +992,6 @@ var game;
             checkMoveOk: gameLogic.checkMoveOk,
             updateUI: updateUI
         });
-        var w = window;
-        if (w["HTMLInspector"]) {
-            setInterval(function () {
-                w["HTMLInspector"].inspect({
-                    excludeRules: ["unused-classes", "script-placement"],
-                });
-            }, 3000);
-        }
         dragAndDropService.addDragListener("gameArea", handleDragEvent);
     }
     game.init = init;
@@ -1094,7 +1086,8 @@ var game;
         return game.currentUpdateUI.yourPlayerIndex;
     }
     function isComputer() {
-        return game.currentUpdateUI.playersInfo[game.currentUpdateUI.yourPlayerIndex].playerId === '';
+        var playerInfo = game.currentUpdateUI.playersInfo[game.currentUpdateUI.yourPlayerIndex];
+        return playerInfo && playerInfo.playerId === '';
     }
     function isComputerTurn() {
         return isMyTurn() && isComputer();
@@ -1188,9 +1181,7 @@ var game;
      * Check if it is a dark cell.
      */
     function isDarkCell(row, col) {
-        var isEvenRow = row % 2 === 0;
-        var isEvenCol = col % 2 === 0;
-        return ((!isEvenRow && isEvenCol) || (isEvenRow && !isEvenCol));
+        return (row + col) % 2 == 1;
     }
     game.isDarkCell = isDarkCell;
     /**
@@ -1206,31 +1197,94 @@ var game;
         }
         return delta;
     }
-    /**
-     * Check if there's a piece within the cell.
-     */
-    function hasPiece(row, col) {
+    function getPiece(row, col) {
         var rotatedDelta = rotate({ row: row, col: col });
-        return isDarkCell(rotatedDelta.row, rotatedDelta.col) &&
-            game.board &&
-            game.board[rotatedDelta.row][rotatedDelta.col] !== 'DS';
+        return game.board[rotatedDelta.row][rotatedDelta.col];
     }
-    game.hasPiece = hasPiece;
+    // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
+    game.hadLoadingError = false;
+    function onImgError() {
+        if (game.hadLoadingError)
+            return;
+        game.hadLoadingError = true;
+        $rootScope.$apply();
+    }
+    game.onImgError = onImgError;
+    function isLocalTesting() { return location.protocol === "file:"; }
+    function getBoardAvatar() {
+        if (game.hadLoadingError)
+            return '';
+        // For local testing
+        if (isLocalTesting())
+            return "http://graph.facebook.com/10153589934097337/picture?height=300&width=300";
+        var myPlayerInfo = game.currentUpdateUI.playersInfo[yourPlayerIndex()];
+        if (!myPlayerInfo)
+            return '';
+        var myAvatar = myPlayerInfo.avatarImageUrl;
+        if (!myAvatar)
+            return '';
+        // I only do it for FB users
+        var match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
+        if (!match)
+            return '';
+        var myFbUserId = match[1];
+        return "http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300";
+    }
+    game.getBoardAvatar = getBoardAvatar;
+    function getBoardClass() {
+        return game.hadLoadingError ? '' : 'transparent_board';
+    }
+    game.getBoardClass = getBoardClass;
+    function getPieceContainerClass(row, col) {
+        return getAnimationClass(row, col);
+    }
+    game.getPieceContainerClass = getPieceContainerClass;
+    function getPieceClass(row, col) {
+        var avatarPieceSrc = getAvatarPieceSrc(row, col);
+        var avatarPieceClass = '';
+        if (avatarPieceSrc) {
+            var piece = getPiece(row, col);
+            var pieceColor = gameLogic.getColor(piece);
+            avatarPieceClass = ' avatar_piece ' +
+                // Black&white are reversed in the UI because black should start. 
+                (pieceColor === CONSTANTS.BLACK ? 'lighter_avatar_piece' : 'darker_avatar_piece');
+        }
+        return "piece " + avatarPieceClass;
+    }
+    game.getPieceClass = getPieceClass;
+    function getAvatarPieceSrc(row, col) {
+        if (game.hadLoadingError)
+            return '';
+        var piece = getPiece(row, col);
+        if (piece == '--' || piece == 'DS')
+            return '';
+        var pieceColor = gameLogic.getColor(piece);
+        var pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
+        var myPlayerInfo = game.currentUpdateUI.playersInfo[pieceColorIndex];
+        if (!myPlayerInfo)
+            return '';
+        var avatarImageUrl = myPlayerInfo.avatarImageUrl;
+        return avatarImageUrl ? avatarImageUrl :
+            !isLocalTesting() ? '' :
+                pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+    }
+    game.getAvatarPieceSrc = getAvatarPieceSrc;
     function getPieceSrc(row, col) {
-        var rotatedDelta = rotate({ row: row, col: col });
+        var avatarPieceSrc = getAvatarPieceSrc(row, col);
+        if (avatarPieceSrc)
+            return avatarPieceSrc;
+        var piece = getPiece(row, col);
         var dir = 'imgs/';
         var ext = '.png';
-        if (hasPiece(row, col)) {
-            switch (game.board[rotatedDelta.row][rotatedDelta.col]) {
-                case 'BM':
-                    return dir + 'black_man' + ext;
-                case 'BK':
-                    return dir + 'black_cro' + ext;
-                case 'WM':
-                    return dir + 'white_man' + ext;
-                case 'WK':
-                    return dir + 'white_cro' + ext;
-            }
+        switch (piece) {
+            case 'BM':
+                return dir + 'black_man' + ext;
+            case 'BK':
+                return dir + 'black_cro' + ext;
+            case 'WM':
+                return dir + 'white_man' + ext;
+            case 'WK':
+                return dir + 'white_cro' + ext;
         }
         return '';
     }
@@ -1263,10 +1317,9 @@ var game;
         var rotatedDelta = rotate(delta);
         if (type === "touchstart") {
             // If a piece is dragged, store the piece element
-            if (hasPiece(delta.row, delta.col) &&
-                isHumanTurn() &&
+            if (isHumanTurn() &&
                 isOwnColor(rotatedDelta) &&
-                canDrag(delta.row, delta.col)) {
+                canDrag(rotatedDelta)) {
                 game.dndStartPos = delta;
                 game.dndElem = document.getElementById("img_" + game.dndStartPos.row + "_" + game.dndStartPos.col);
                 var style = game.dndElem.style;
@@ -1308,10 +1361,8 @@ var game;
     /**
      * Check if the piece can be dragged.
      */
-    function canDrag(row, col) {
-        var delta = { row: row, col: col };
-        var rotatedDelta = rotate(delta);
-        if (!isDarkCell(row, col) || !gameLogic.isOwnColor(yourPlayerIndex(), game.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
+    function canDrag(rotatedDelta) {
+        if (!gameLogic.isOwnColor(yourPlayerIndex(), game.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
         }
         var hasMandatoryJump = gameLogic.hasMandatoryJumps(game.board, yourPlayerIndex());

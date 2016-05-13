@@ -129,15 +129,6 @@ module game {
       checkMoveOk: gameLogic.checkMoveOk,
       updateUI: updateUI
     });
-
-    let w: any = window;
-    if (w["HTMLInspector"]) {
-      setInterval(function () {
-        w["HTMLInspector"].inspect({
-          excludeRules: ["unused-classes", "script-placement"],
-        });
-      }, 3000);
-    }
     
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
   }
@@ -238,7 +229,8 @@ module game {
   }
   
   function isComputer() {
-    return currentUpdateUI.playersInfo[currentUpdateUI.yourPlayerIndex].playerId === '';
+    let playerInfo = currentUpdateUI.playersInfo[currentUpdateUI.yourPlayerIndex];
+    return playerInfo && playerInfo.playerId === '';
   }
   
   function isComputerTurn() {
@@ -340,10 +332,7 @@ module game {
    * Check if it is a dark cell.
    */
   export function isDarkCell(row: number, col: number): boolean {
-    let isEvenRow = row % 2 === 0;
-    let isEvenCol = col % 2 === 0;
-
-    return ((!isEvenRow && isEvenCol) || (isEvenRow && !isEvenCol));
+    return (row + col) % 2 == 1;
   }
 
   /**
@@ -361,35 +350,90 @@ module game {
     return delta;
   }
 
-  /**
-   * Check if there's a piece within the cell.
-   */
-  export function hasPiece(row: number, col: number): boolean {
+  function getPiece(row: number, col: number): string {
     let rotatedDelta = rotate({row: row, col: col});
-
-    return isDarkCell(rotatedDelta.row, rotatedDelta.col) &&
-        board &&
-        board[rotatedDelta.row][rotatedDelta.col] !== 'DS';
+    return board[rotatedDelta.row][rotatedDelta.col];
+  }
+  
+  // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
+  export let hadLoadingError = false;
+  export function onImgError() {
+    if (hadLoadingError) return;
+    hadLoadingError = true;
+    $rootScope.$apply();
+  }
+  
+  function isLocalTesting() { return location.protocol === "file:"; }
+  
+  export function getBoardAvatar() {
+    if (hadLoadingError) return '';
+    // For local testing
+    if (isLocalTesting()) return "http://graph.facebook.com/10153589934097337/picture?height=300&width=300";
+    let myPlayerInfo = currentUpdateUI.playersInfo[yourPlayerIndex()];
+    if (!myPlayerInfo) return '';
+    let myAvatar = myPlayerInfo.avatarImageUrl;
+    if (!myAvatar) return '';
+    // I only do it for FB users
+    let match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
+    if (!match) return '';
+    let myFbUserId = match[1];
+    return "http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300";   
+  }
+  
+  export function getBoardClass() {
+    return hadLoadingError ? '' : 'transparent_board';   
+  }
+  
+  export function getPieceContainerClass(row: number, col: number) {
+    return getAnimationClass(row, col);
+  }
+  
+  export function getPieceClass(row: number, col: number) {
+    let avatarPieceSrc = getAvatarPieceSrc(row, col);
+    let avatarPieceClass = '';
+    if (avatarPieceSrc) {
+      let piece = getPiece(row, col);
+      let pieceColor = gameLogic.getColor(piece);
+      avatarPieceClass = ' avatar_piece ' +
+        // Black&white are reversed in the UI because black should start. 
+        (pieceColor === CONSTANTS.BLACK ? 'lighter_avatar_piece' : 'darker_avatar_piece');
+    }
+    return "piece " + avatarPieceClass;
   }
 
+  export function getAvatarPieceSrc(row: number, col: number): string {
+    if (hadLoadingError) return '';
+    let piece = getPiece(row, col);
+    if (piece == '--' || piece == 'DS') return '';
+    
+    let pieceColor = gameLogic.getColor(piece);
+    let pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
+    let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
+    if (!myPlayerInfo) return '';
+    let avatarImageUrl = myPlayerInfo.avatarImageUrl;
+    return avatarImageUrl ? avatarImageUrl : 
+      !isLocalTesting() ? '' :
+      pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+  }
+  
   export function getPieceSrc(row: number, col: number): string {
-    let rotatedDelta = rotate({row: row, col: col});
+    let avatarPieceSrc = getAvatarPieceSrc(row, col);
+    if (avatarPieceSrc) return avatarPieceSrc;
+    
+    let piece = getPiece(row, col);
     let dir: string = 'imgs/';
     let ext: string = '.png';
 
-    if (hasPiece(row, col)) {
-      switch (board[rotatedDelta.row][rotatedDelta.col]) {
-        case 'BM':
-          return dir + 'black_man' + ext;
-        case 'BK':
-          return dir + 'black_cro' + ext;
-        case 'WM':
-          return dir + 'white_man' + ext;
-        case 'WK':
-          return dir + 'white_cro' + ext;
-      }
+    switch (piece) {
+      case 'BM':
+        return dir + 'black_man' + ext;
+      case 'BK':
+        return dir + 'black_cro' + ext;
+      case 'WM':
+        return dir + 'white_man' + ext;
+      case 'WK':
+        return dir + 'white_cro' + ext;
     }
-
     return '';
   }
   
@@ -424,10 +468,9 @@ module game {
 
     if (type === "touchstart") {
       // If a piece is dragged, store the piece element
-      if (hasPiece(delta.row, delta.col) &&
-          isHumanTurn() &&
+      if (isHumanTurn() &&
           isOwnColor(rotatedDelta) &&
-          canDrag(delta.row, delta.col)) {
+          canDrag(rotatedDelta)) {
         dndStartPos = delta;
         dndElem = document.getElementById("img_" + dndStartPos.row + "_" + dndStartPos.col);
         let style: any = dndElem.style;
@@ -477,11 +520,8 @@ module game {
   /**
    * Check if the piece can be dragged.
    */
-  function canDrag(row: number, col: number): boolean {
-    let delta: BoardDelta = {row: row, col: col};
-    let rotatedDelta: BoardDelta = rotate(delta);
-
-    if (!isDarkCell(row, col) || !gameLogic.isOwnColor(yourPlayerIndex(), board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
+  function canDrag(rotatedDelta: BoardDelta): boolean {
+    if (!gameLogic.isOwnColor(yourPlayerIndex(), board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
       return false;
     }
 
