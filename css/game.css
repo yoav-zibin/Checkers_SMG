@@ -50,12 +50,12 @@ body {
   border-radius: 50%;
 }
 .lighter_avatar_piece {
-  -webkit-filter: brightness(300%);
-  filter: brightness(300%);
+  /*-webkit-filter: brightness(300%); filter: brightness(300%);*/
+  border: 3px solid #FFF;
 }
 .darker_avatar_piece {
-  -webkit-filter: brightness(30%);
-  filter: brightness(30%);
+  /*-webkit-filter: brightness(30%); filter: brightness(30%); */
+  border: 3px solid #000;
 }
 
 
