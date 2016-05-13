@@ -1,6 +1,9 @@
 ;
 var game;
 (function (game) {
+    // http://graph.facebook.com/10152824135331125/picture?type=square
+    // http://graph.facebook.com/10152824135331125/picture?type=large
+    // http://graph.facebook.com/10153589934097337/picture?height=400&width=400
     game.isHelpModalShown = false;
     var CONSTANTS = gameLogic.CONSTANTS;
     var gameArea = null;
@@ -83,10 +86,8 @@ var game;
             },
         };
     }
-    /**
-     * Send initial move
-     */
     function init() {
+        log.alwaysLog("Checkers version 1.1");
         gameArea = document.getElementById("gameArea");
         if (!gameArea)
             throw new Error("Can't find gameArea div!");
@@ -94,9 +95,6 @@ var game;
         translate.setLanguage('en');
         console.log("Translation of 'CHECKERS_RULES_TITLE' is " + translate('CHECKERS_RULES_TITLE'));
         resizeGameAreaService.setWidthToHeight(1);
-        /**
-         * Set the game!
-         */
         moveService.setGame({
             minNumberOfPlayers: 2,
             maxNumberOfPlayers: 2,
@@ -122,18 +120,20 @@ var game;
     }
     function advanceToNextAnimation() {
         if (game.remainingAnimations.length == 0) {
-            // Checking we got to the corrent board
+            // The computer makes a move one tick (0.6sec) after the animations finished, to avoid stress on the UI thread.
+            clearAnimationInterval();
+            maybeSendComputerMove();
+            return;
+        }
+        var miniMove = game.remainingAnimations.shift();
+        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
+        game.board = iMove.stateAfterMove.board;
+        if (game.remainingAnimations.length == 0) {
+            // Checking we got to the final correct board
             var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
             if (!angular.equals(game.board, expectedBoard)) {
                 throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
             }
-            clearAnimationInterval();
-            maybeSendComputerMove();
-        }
-        if (game.remainingAnimations.length > 0) {
-            var miniMove = game.remainingAnimations.shift();
-            var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
-            game.board = iMove.stateAfterMove.board;
         }
     }
     /**
@@ -210,7 +210,7 @@ var game;
     }
     function isHumanTurn() {
         return isMyTurn() && !isComputer() &&
-            game.animationInterval == null; // you can only move after all animations are over.
+            game.remainingAnimations.length == 0; // you can only move after all animations are over.
     }
     function isMyTurn() {
         return !game.didMakeMove &&

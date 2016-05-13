@@ -24,6 +24,9 @@ interface MoveDeltas {
 }
 
 module game {
+  // http://graph.facebook.com/10152824135331125/picture?type=square
+  // http://graph.facebook.com/10152824135331125/picture?type=large
+  // http://graph.facebook.com/10153589934097337/picture?height=400&width=400
   export let isHelpModalShown: boolean = false;
 
   let CONSTANTS: any = gameLogic.CONSTANTS;
@@ -110,10 +113,8 @@ module game {
     };
   }
   
-  /**
-   * Send initial move
-   */
   export function init() {
+    log.alwaysLog("Checkers version 1.1");
     gameArea = document.getElementById("gameArea");
     if (!gameArea) throw new Error("Can't find gameArea div!");
     
@@ -122,9 +123,6 @@ module game {
     
     console.log("Translation of 'CHECKERS_RULES_TITLE' is " + translate('CHECKERS_RULES_TITLE'));
     resizeGameAreaService.setWidthToHeight(1);
-    /**
-     * Set the game!
-     */
     moveService.setGame({
       minNumberOfPlayers: 2,
       maxNumberOfPlayers: 2,
@@ -153,18 +151,20 @@ module game {
   
   function advanceToNextAnimation() {
     if (remainingAnimations.length == 0) {
-      // Checking we got to the corrent board
+      // The computer makes a move one tick (0.6sec) after the animations finished, to avoid stress on the UI thread.
+      clearAnimationInterval();
+      maybeSendComputerMove();
+      return;
+    }
+    let miniMove = remainingAnimations.shift();
+    let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
+    board = iMove.stateAfterMove.board;
+    if (remainingAnimations.length == 0) {
+      // Checking we got to the final correct board
       let expectedBoard = currentUpdateUI.move.stateAfterMove.board;
       if (!angular.equals(board, expectedBoard)) {
         throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
       }
-      clearAnimationInterval();
-      maybeSendComputerMove();
-    }
-    if (remainingAnimations.length > 0) {
-      let miniMove = remainingAnimations.shift();
-      let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
-      board = iMove.stateAfterMove.board;
     }
   }
 
@@ -247,7 +247,7 @@ module game {
   
   function isHumanTurn() {
     return isMyTurn() && !isComputer() &&
-      animationInterval == null; // you can only move after all animations are over.
+      remainingAnimations.length == 0; // you can only move after all animations are over.
   }
   
   function isMyTurn() {

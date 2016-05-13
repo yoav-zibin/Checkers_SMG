@@ -80,6 +80,7 @@ interface ILog {
   warn(... args: any[]):void;
   error(... args: any[]):void;
   log(... args: any[]):void;
+  alwaysLog(... args: any[]):void;
 }
 declare var log:ILog;
 
