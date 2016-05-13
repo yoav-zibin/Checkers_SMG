@@ -203,8 +203,8 @@ module.exports = function(grunt) {
             "imgs/board.jpg",
           ],
           network: [
-            'dist/everything.min.js.map',
-            'dist/everything.js'
+            // I do '*' because we need to load avatars from FB and maybe other places on the web.
+            '*'
           ],
           timestamp: true
         },
