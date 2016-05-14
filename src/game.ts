@@ -355,6 +355,37 @@ module game {
     return board[rotatedDelta.row][rotatedDelta.col];
   }
   
+  /*
+  TLDR: iOS has CORS problems with FB avatars, so I can only load FB images using a proxy. 
+
+  // On iOS and Safari, when loading:
+  //  http://graph.facebook.com/10152824135331125/picture
+  // it fails with "status":0, I see this errror in safari:
+  // Failed to load resource: Request header field Accept-Encoding is not allowed by Access-Control-Allow-Headers.
+  Nothing works...
+  Finally found the issue, and there is nothing I can do about it:
+  Safari doesn't set CORS on a redirect correctly:
+  http://stackoverflow.com/questions/32332919/safari-fails-cors-request-after-302-redirect
+  https://bugs.webkit.org/show_bug.cgi?id=98838
+  I tried removing the headers: Accept, Accept-Encoding, Content-Type
+  headers: {
+    'Accept': undefined,
+    'Accept-Encoding': undefined,
+    'Content-Type': undefined
+  },
+  I tried directly using XMLHttpRequest, ... */
+  let userAgent = navigator.userAgent.toLowerCase();
+  let is_ios = userAgent.indexOf("iphone") > -1 || userAgent.indexOf("ipod") > -1 || userAgent.indexOf("ipad") > -1;
+  function isFbAvatar(imgUrl: string): boolean {
+    return imgUrl.indexOf("graph.facebook.com") > 0;
+  }
+  function getMaybeProxiedImgUrl(imgUrl: string) {
+    // E.g.,
+    // http://multiplayer-gaming.appspot.com/proxy/?fwdurl=http://graph.facebook.com/10153589934097337/picture?height=300&width=300
+    return is_ios && isFbAvatar(imgUrl) ? 'http://multiplayer-gaming.appspot.com/proxy/?url=' + encodeURIComponent(imgUrl) :
+      imgUrl;
+  }
+  
   // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
   export let hadLoadingError = false;
   export function onImgError() {
@@ -380,7 +411,7 @@ module game {
     let match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
     if (!match) return '';
     let myFbUserId = match[1];
-    return "http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300";   
+    return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300");   
   }
   
   export function getBoardClass() {
@@ -435,7 +466,7 @@ module game {
     let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
     if (!myPlayerInfo) return '';
     let avatarImageUrl = myPlayerInfo.avatarImageUrl;
-    return hasAvatarImgUrl(avatarImageUrl) ? avatarImageUrl : 
+    return hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) : 
       !isLocalTesting() ? '' :
       pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
   }
