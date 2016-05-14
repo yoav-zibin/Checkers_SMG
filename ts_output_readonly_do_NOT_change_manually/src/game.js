@@ -337,7 +337,7 @@ var game;
     function getMaybeProxiedImgUrl(imgUrl) {
         // E.g.,
         // http://multiplayer-gaming.appspot.com/proxy/?fwdurl=http://graph.facebook.com/10153589934097337/picture?height=300&width=300
-        return is_ios && isFbAvatar(imgUrl) ? 'http://multiplayer-gaming.appspot.com/proxy/?url=' + encodeURIComponent(imgUrl) :
+        return is_ios && isFbAvatar(imgUrl) ? 'http://multiplayer-gaming.appspot.com/proxy/?fwdurl=' + encodeURIComponent(imgUrl) :
             imgUrl;
     }
     // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
