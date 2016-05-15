@@ -1018,6 +1018,7 @@ var game;
                 throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
             }
         }
+        updateCache();
     }
     /**
      * This method update the game's UI.
@@ -1063,6 +1064,7 @@ var game;
             game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
             game.animationInterval = $interval(advanceToNextAnimation, 600);
         }
+        updateCache();
     }
     game.updateUI = updateUI;
     function maybeSendComputerMove() {
@@ -1237,20 +1239,27 @@ var game;
         if (game.hadLoadingError)
             return;
         game.hadLoadingError = true;
-        $rootScope.$apply();
+        updateCacheAndApply();
     }
     game.onImgError = onImgError;
+    function updateCacheAndApply() {
+        updateCache();
+        $rootScope.$apply();
+    }
     function isLocalTesting() { return location.protocol === "file:"; }
     function hasAvatarImgUrl(avatarImageUrl) {
         return avatarImageUrl && avatarImageUrl.indexOf('imgs/autoMatchAvatar.png') === -1;
     }
-    function getBoardAvatar() {
+    function getBoardAvatar(playerIndex) {
         if (game.hadLoadingError)
             return '';
         // For local testing
         if (isLocalTesting())
-            return "http://graph.facebook.com/10153589934097337/picture?height=300&width=300";
-        var myPlayerInfo = game.currentUpdateUI.playersInfo[yourPlayerIndex()];
+            return "http://graph.facebook.com/" +
+                (playerIndex == 1 ? "10153589934097337" : "10153693068502449") + "/picture?height=200&width=400";
+        if (game.shouldRotateBoard)
+            playerIndex = 1 - playerIndex;
+        var myPlayerInfo = game.currentUpdateUI.playersInfo[playerIndex];
         if (!myPlayerInfo)
             return '';
         var myAvatar = myPlayerInfo.avatarImageUrl;
@@ -1261,7 +1270,7 @@ var game;
         if (!match)
             return '';
         var myFbUserId = match[1];
-        return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300");
+        return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");
     }
     game.getBoardAvatar = getBoardAvatar;
     function getBoardClass() {
@@ -1295,18 +1304,28 @@ var game;
     }
     game.getSquareClass = getSquareClass;
     function getPieceClass(row, col) {
-        var avatarPieceSrc = getAvatarPieceSrc(row, col);
-        var avatarPieceClass = '';
-        if (avatarPieceSrc) {
-            var piece = getPiece(row, col);
-            var pieceColor = gameLogic.getColor(piece);
-            avatarPieceClass = ' avatar_piece ' +
-                // Black&white are reversed in the UI because black should start. 
-                (pieceColor === CONSTANTS.BLACK ? 'lighter_avatar_piece' : 'darker_avatar_piece');
-        }
-        return "piece " + avatarPieceClass;
+        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
+        if (!avatarPieceSrc)
+            return "piece";
+        var piece = getPiece(row, col);
+        var pieceColor = gameLogic.getColor(piece);
+        // Black&white are reversed in the UI because black should start. 
+        return pieceColor === CONSTANTS.BLACK ? 'piece avatar_piece lighter_avatar_piece' : 'piece avatar_piece darker_avatar_piece';
     }
     game.getPieceClass = getPieceClass;
+    function getAvatarPieceCrown(row, col) {
+        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
+        if (!avatarPieceSrc)
+            return '';
+        var piece = getPiece(row, col);
+        var pieceKind = gameLogic.getKind(piece);
+        if (pieceKind !== CONSTANTS.KING)
+            return '';
+        var pieceColor = gameLogic.getColor(piece);
+        return pieceColor === CONSTANTS.BLACK ?
+            "imgs/avatar_white_crown.svg" : "imgs/avatar_black_crown.svg";
+    }
+    game.getAvatarPieceCrown = getAvatarPieceCrown;
     function getAvatarPieceSrc(row, col) {
         if (game.hadLoadingError)
             return '';
@@ -1324,22 +1343,26 @@ var game;
                 pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
     }
     game.getAvatarPieceSrc = getAvatarPieceSrc;
+    var dir = 'imgs/';
+    var ext = '.png';
+    var bm_img = dir + 'black_man' + ext;
+    var bk_img = dir + 'black_cro' + ext;
+    var wm_img = dir + 'white_man' + ext;
+    var wk_img = dir + 'white_cro' + ext;
     function getPieceSrc(row, col) {
-        var avatarPieceSrc = getAvatarPieceSrc(row, col);
+        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
         if (avatarPieceSrc)
             return avatarPieceSrc;
         var piece = getPiece(row, col);
-        var dir = 'imgs/';
-        var ext = '.png';
         switch (piece) {
             case 'BM':
-                return dir + 'black_man' + ext;
+                return bm_img;
             case 'BK':
-                return dir + 'black_cro' + ext;
+                return bk_img;
             case 'WM':
-                return dir + 'white_man' + ext;
+                return wm_img;
             case 'WK':
-                return dir + 'white_cro' + ext;
+                return wk_img;
         }
         return '';
     }
@@ -1388,7 +1411,7 @@ var game;
                 style['transform'] = transform;
                 style['-webkit-transform'] = transform;
                 setDndElemPos(dndPos, cellSize);
-                $rootScope.$apply(); // To show the droppable squares, see .can_drop_on_square
+                updateCacheAndApply(); // To show the droppable squares, see .can_drop_on_square
             }
             return;
         }
@@ -1403,7 +1426,7 @@ var game;
         // Clean up
         if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
             clearDragNDrop();
-            $rootScope.$apply(); // To show the draggable squares, see .can_drag_from_square
+            updateCacheAndApply(); // To show the draggable squares, see .can_drag_from_square
         }
     }
     /**
@@ -1473,6 +1496,34 @@ var game;
         return true;
     }
     game.clickedOnModal = clickedOnModal;
+    game.cachedSquareClass = getEmpty8Arrays();
+    game.cachedPieceContainerClass = getEmpty8Arrays();
+    game.cachedPieceClass = getEmpty8Arrays();
+    game.cachedAvatarPieceSrc = getEmpty8Arrays(); // for more efficient computation (not used in the HTML)
+    game.cachedPieceSrc = getEmpty8Arrays();
+    game.cachedAvatarPieceCrown = getEmpty8Arrays();
+    function getEmpty8Arrays() {
+        var res = [];
+        for (var i = 0; i < 8; i++)
+            res.push([]);
+        return res;
+    }
+    function updateCache() {
+        game.cachedBoardAvatar0 = getBoardAvatar(0);
+        game.cachedBoardAvatar1 = getBoardAvatar(1);
+        game.cachedBoardClass = getBoardClass();
+        for (var row = 0; row < 8; row++) {
+            for (var col = 0; col < 8; col++) {
+                game.cachedAvatarPieceSrc[row][col] = getAvatarPieceSrc(row, col); // Must be first (this cache is used in other functions)
+                game.cachedSquareClass[row][col] = getSquareClass(row, col);
+                game.cachedPieceContainerClass[row][col] = getPieceContainerClass(row, col);
+                game.cachedPieceClass[row][col] = getPieceClass(row, col);
+                game.cachedPieceSrc[row][col] = getPieceSrc(row, col);
+                game.cachedAvatarPieceCrown[row][col] = getAvatarPieceCrown(row, col);
+            }
+        }
+    }
+    game.updateCache = updateCache;
 })(game || (game = {}));
 angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
     .run(function () {

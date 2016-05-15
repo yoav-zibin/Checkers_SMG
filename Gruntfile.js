@@ -200,6 +200,8 @@ module.exports = function(grunt) {
             "imgs/black_man.png",
             "imgs/white_cro.png",
             "imgs/black_cro.png",
+            "imgs/avatar_white_crown.svg",
+            "imgs/avatar_black_crown.svg",
             "imgs/board.jpg",
           ],
           network: [

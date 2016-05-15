@@ -157,6 +157,7 @@ module game {
         throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
       }
     }
+    updateCache();
   }
 
   /**
@@ -203,6 +204,7 @@ module game {
       remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);  
       animationInterval = $interval(advanceToNextAnimation, 600);
     }
+    updateCache();
   }
   
   function maybeSendComputerMove() {
@@ -391,6 +393,11 @@ module game {
   export function onImgError() {
     if (hadLoadingError) return;
     hadLoadingError = true;
+    updateCacheAndApply();
+  }
+  
+  function updateCacheAndApply() {
+    updateCache();
     $rootScope.$apply();
   }
   
@@ -399,11 +406,13 @@ module game {
     return avatarImageUrl && avatarImageUrl.indexOf('imgs/autoMatchAvatar.png') === -1;
   }
   
-  export function getBoardAvatar() {
+  export function getBoardAvatar(playerIndex: number) {
     if (hadLoadingError) return '';
     // For local testing
-    if (isLocalTesting()) return "http://graph.facebook.com/10153589934097337/picture?height=300&width=300";
-    let myPlayerInfo = currentUpdateUI.playersInfo[yourPlayerIndex()];
+    if (isLocalTesting()) return "http://graph.facebook.com/" +
+        (playerIndex == 1 ? "10153589934097337" : "10153693068502449") + "/picture?height=200&width=400";
+    if (shouldRotateBoard) playerIndex = 1 - playerIndex;
+    let myPlayerInfo = currentUpdateUI.playersInfo[playerIndex];
     if (!myPlayerInfo) return '';
     let myAvatar = myPlayerInfo.avatarImageUrl;
     if (!hasAvatarImgUrl(myAvatar)) return '';
@@ -411,7 +420,7 @@ module game {
     let match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
     if (!match) return '';
     let myFbUserId = match[1];
-    return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=300&width=300");   
+    return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");   
   }
   
   export function getBoardClass() {
@@ -444,16 +453,23 @@ module game {
   }
   
   export function getPieceClass(row: number, col: number) {
-    let avatarPieceSrc = getAvatarPieceSrc(row, col);
-    let avatarPieceClass = '';
-    if (avatarPieceSrc) {
-      let piece = getPiece(row, col);
-      let pieceColor = gameLogic.getColor(piece);
-      avatarPieceClass = ' avatar_piece ' +
-        // Black&white are reversed in the UI because black should start. 
-        (pieceColor === CONSTANTS.BLACK ? 'lighter_avatar_piece' : 'darker_avatar_piece');
-    }
-    return "piece " + avatarPieceClass;
+    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
+    if (!avatarPieceSrc) return "piece";
+    let piece = getPiece(row, col);
+    let pieceColor = gameLogic.getColor(piece);
+    // Black&white are reversed in the UI because black should start. 
+    return pieceColor === CONSTANTS.BLACK ? 'piece avatar_piece lighter_avatar_piece' : 'piece avatar_piece darker_avatar_piece';
+  }
+  
+  export function getAvatarPieceCrown(row: number, col: number) {
+    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
+    if (!avatarPieceSrc) return '';
+    let piece = getPiece(row, col);
+    let pieceKind = gameLogic.getKind(piece);
+    if (pieceKind !== CONSTANTS.KING) return '';
+    let pieceColor = gameLogic.getColor(piece);
+    return pieceColor === CONSTANTS.BLACK ? 
+        "imgs/avatar_white_crown.svg" : "imgs/avatar_black_crown.svg";
   }
 
   export function getAvatarPieceSrc(row: number, col: number): string {
@@ -471,23 +487,27 @@ module game {
       pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
   }
   
+  let dir: string = 'imgs/';
+  let ext: string = '.png';
+  let bm_img = dir + 'black_man' + ext;
+  let bk_img = dir + 'black_cro' + ext;
+  let wm_img = dir + 'white_man' + ext;
+  let wk_img = dir + 'white_cro' + ext;
   export function getPieceSrc(row: number, col: number): string {
-    let avatarPieceSrc = getAvatarPieceSrc(row, col);
+    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
     if (avatarPieceSrc) return avatarPieceSrc;
     
     let piece = getPiece(row, col);
-    let dir: string = 'imgs/';
-    let ext: string = '.png';
 
     switch (piece) {
       case 'BM':
-        return dir + 'black_man' + ext;
+        return bm_img;
       case 'BK':
-        return dir + 'black_cro' + ext;
+        return bk_img;
       case 'WM':
-        return dir + 'white_man' + ext;
+        return wm_img;
       case 'WK':
-        return dir + 'white_cro' + ext;
+        return wk_img;
     }
     return '';
   }
@@ -539,7 +559,7 @@ module game {
         style['transform'] = transform;
         style['-webkit-transform'] = transform;
         setDndElemPos(dndPos, cellSize);
-        $rootScope.$apply(); // To show the droppable squares, see .can_drop_on_square
+        updateCacheAndApply(); // To show the droppable squares, see .can_drop_on_square
       }
       return;
     } 
@@ -558,7 +578,7 @@ module game {
     // Clean up
     if (type === "touchend" || type === "touchcancel" || type === "touchleave") {
       clearDragNDrop();
-      $rootScope.$apply(); // To show the draggable squares, see .can_drag_from_square
+      updateCacheAndApply(); // To show the draggable squares, see .can_drag_from_square
     }
   }
 
@@ -638,6 +658,38 @@ module game {
       isHelpModalShown = false;
     }
     return true;
+  }
+  
+  // Caching layer, to make angular more efficient.
+  export let cachedBoardAvatar0: string;
+  export let cachedBoardAvatar1: string;
+  export let cachedBoardClass: string;
+  export let cachedSquareClass: string[][] = getEmpty8Arrays();
+  export let cachedPieceContainerClass: string[][] = getEmpty8Arrays();
+  export let cachedPieceClass: string[][] = getEmpty8Arrays();
+  export let cachedAvatarPieceSrc: string[][] = getEmpty8Arrays(); // for more efficient computation (not used in the HTML)
+  export let cachedPieceSrc: string[][] = getEmpty8Arrays();
+  export let cachedAvatarPieceCrown: string[][] = getEmpty8Arrays();
+  function getEmpty8Arrays(): string[][] {
+    let res: string[][] = [];
+    for (let i = 0; i < 8; i++) res.push([]);
+    return res;
+  }
+  export function updateCache() {
+    cachedBoardAvatar0 = getBoardAvatar(0);
+    cachedBoardAvatar1 = getBoardAvatar(1);
+    cachedBoardClass = getBoardClass();
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        cachedAvatarPieceSrc[row][col] = getAvatarPieceSrc(row, col); // Must be first (this cache is used in other functions)
+        
+        cachedSquareClass[row][col] = getSquareClass(row, col);
+        cachedPieceContainerClass[row][col] = getPieceContainerClass(row, col);
+        cachedPieceClass[row][col] = getPieceClass(row, col);
+        cachedPieceSrc[row][col] = getPieceSrc(row, col);
+        cachedAvatarPieceCrown[row][col] = getAvatarPieceCrown(row, col);
+      }
+    }
   }
 }
 
