@@ -155,7 +155,7 @@ var game;
         }
         else if (!shouldAnimate) {
             game.board = params.move.stateAfterMove.board;
-            game.animationInterval = $interval(advanceToNextAnimation, 600); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
+            game.animationInterval = $interval(advanceToNextAnimation, 700); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
         }
         else {
             // params.stateBeforeMove is null only in the 2nd move
@@ -168,7 +168,7 @@ var game;
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.  
             game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
-            game.animationInterval = $interval(advanceToNextAnimation, 600);
+            game.animationInterval = $interval(advanceToNextAnimation, 700);
         }
         updateCache();
     }

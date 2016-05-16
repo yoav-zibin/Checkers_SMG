@@ -98,7 +98,7 @@ Animation
 ****************************************/
 .explodePiece {
   z-index: 5;
-  animation: explodePiece 0.4s cubic-bezier(0.420, 0.000, 1.000, 0.830) forwards;
+  animation: explodePiece 0.5s cubic-bezier(0.420, 0.000, 1.000, 0.830) forwards;
 }
 
 @keyframes explodePiece {
@@ -112,35 +112,35 @@ Animation
 }
 
 .move_up_left {
-  animation: move_up_left 0.4s linear forwards;
+  animation: move_up_left 0.5s linear forwards;
 }
 
 .move_up_right {
-  animation: move_up_right 0.4s linear forwards;
+  animation: move_up_right 0.5s linear forwards;
 }
 
 .move_down_left {
-  animation: move_down_left 0.4s linear forwards;
+  animation: move_down_left 0.5s linear forwards;
 }
 
 .move_down_right {
-  animation: move_down_right 0.4s linear forwards;
+  animation: move_down_right 0.5s linear forwards;
 }
 
 .jump_up_left {
-  animation: jump_up_left 0.4s linear forwards;
+  animation: jump_up_left 0.5s linear forwards;
 }
 
 .jump_up_right {
-  animation: jump_up_right 0.4s linear forwards;
+  animation: jump_up_right 0.5s linear forwards;
 }
 
 .jump_down_left {
-  animation: jump_down_left 0.4s linear forwards;
+  animation: jump_down_left 0.5s linear forwards;
 }
 
 .jump_down_right {
-  animation: jump_down_right 0.4s linear forwards;
+  animation: jump_down_right 0.5s linear forwards;
 }
 
 /****************************************
