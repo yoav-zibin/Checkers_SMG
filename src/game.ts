@@ -24,9 +24,6 @@ interface MoveDeltas {
 }
 
 module game {
-  // http://graph.facebook.com/10152824135331125/picture?type=square
-  // http://graph.facebook.com/10152824135331125/picture?type=large
-  // http://graph.facebook.com/10153589934097337/picture?height=400&width=400
   export let isHelpModalShown: boolean = false;
 
   let CONSTANTS: any = gameLogic.CONSTANTS;
@@ -381,11 +378,25 @@ module game {
   function isFbAvatar(imgUrl: string): boolean {
     return imgUrl.indexOf("graph.facebook.com") > 0;
   }
+  let isHttps = location.protocol === "https:";
+  function replaceProtocol(url: string) {
+    return isHttps ? replaceToHttps(url) : replaceToHttp(url);
+  }
+  function replaceToHttps(url: string) {
+    return replacePrefix(url, "http:", "https:");
+  }
+  function replaceToHttp(url: string) {
+    return replacePrefix(url, "https:", "http:");
+  }
+  function replacePrefix(url: string, from: string, to: string) {
+    return url.indexOf(from) === 0 ? to + url.substr(from.length) : url;
+  }
   function getMaybeProxiedImgUrl(imgUrl: string) {
     // E.g.,
     // http://multiplayer-gaming.appspot.com/proxy/?fwdurl=http://graph.facebook.com/10153589934097337/picture?height=300&width=300
-    return is_ios && isFbAvatar(imgUrl) ? 'http://multiplayer-gaming.appspot.com/proxy/?fwdurl=' + encodeURIComponent(imgUrl) :
-      imgUrl;
+    return is_ios && isFbAvatar(imgUrl) ? '//multiplayer-gaming.appspot.com/proxy/?fwdurl=' +
+        encodeURIComponent(replaceToHttp(imgUrl)) :
+        replaceProtocol(imgUrl);
   }
   
   // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
