@@ -835,8 +835,8 @@ var gameLogic;
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;
-        for (var _i = 0; _i < miniMoves.length; _i++) {
-            var miniMove = miniMoves[_i];
+        for (var _i = 0, miniMoves_1 = miniMoves; _i < miniMoves_1.length; _i++) {
+            var miniMove = miniMoves_1[_i];
             if (megaMove) {
                 if (megaMove.turnIndexAfterMove !== turnIndexBeforeMove)
                     throw new Error("Mini-moves must be done by the same player");
@@ -864,8 +864,20 @@ var gameLogic;
             return;
         }
         var stateAfterMove = move.stateAfterMove;
+        var miniMoves = stateAfterMove.miniMoves;
+        // Checking that the same piece made all the miniMoves
+        var currentPiecePosition = null;
+        for (var _i = 0, miniMoves_2 = miniMoves; _i < miniMoves_2.length; _i++) {
+            var miniMove = miniMoves_2[_i];
+            var fromDelta = miniMove.fromDelta;
+            if (currentPiecePosition && !angular.equals(currentPiecePosition, fromDelta)) {
+                throw new Error("The same piece must make all moves, BUT currentPiecePosition=" +
+                    angular.toJson(currentPiecePosition, true) + " fromDelta=" + angular.toJson(fromDelta, true));
+            }
+            currentPiecePosition = miniMove.toDelta;
+        }
         var board = stateBeforeMove ? stateBeforeMove.board : null;
-        var expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);
+        var expectedMove = createMove(board, miniMoves, turnIndexBeforeMove);
         if (!angular.equals(move, expectedMove)) {
             throw new Error("Expected move=" + angular.toJson(expectedMove, true) +
                 ", but got stateTransition=" + angular.toJson(stateTransition, true));

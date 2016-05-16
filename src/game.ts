@@ -612,8 +612,13 @@ module game {
     if (!gameLogic.isOwnColor(yourPlayerIndex(), board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
       return false;
     }
+    
+    // The same piece must make all the jumps!
+    if (humanMiniMoves.length > 0 && !angular.equals(rotatedDelta, humanMiniMoves[humanMiniMoves.length - 1].toDelta)) {
+      return false;
+    }
 
-    let hasMandatoryJump: boolean = gameLogic.hasMandatoryJumps(board, yourPlayerIndex());
+    let hasMandatoryJump: boolean = humanMiniMoves.length > 0  || gameLogic.hasMandatoryJumps(board, yourPlayerIndex());
     let possibleMoves: BoardDelta[];
 
     if (hasMandatoryJump) {

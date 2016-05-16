@@ -146,56 +146,75 @@ Animation
 /****************************************
 Simple move key frames
 ****************************************/
-
 /*move up left*/
 @keyframes move_up_left {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.2);
+    width: 120%; height: 120%;
+    top: -50%;
+    left: -50%
   }
   100% {
-    transform: translate(-100%, -100%);
+    width: 100%; height: 100%;
+    top: -100%;
+    left: -100%
   }
 }
 
 /*move up right*/
 @keyframes move_up_right {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(50%, -50%, 0) scale(1.2);
+    width: 120%; height: 120%;
+    top: -50%;
+    left: 50%
   }
   100% {
-    transform: translate(100%, -100%);
+    width: 100%; height: 100%;
+    top: -100%;
+    left: 100%
   }
 }
 
 /*move down left*/
 @keyframes move_down_left {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(-50%, 50%) scale(1.2);
+    width: 120%; height: 120%;
+    top: 50%;
+    left: -50%
   }
   100% {
-    transform: translate(-100%, 100%);
+    width: 100%; height: 100%;
+    top: 100%;
+    left: -100%
   }
 }
 
 /*move down right*/
 @keyframes move_down_right {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(50%, 50%) scale(1.2);
+    width: 120%; height: 120%;
+    top: 50%;
+    left: 50%
   }
   100% {
-    transform: translate(100%, 100%);
+    width: 100%; height: 100%;
+    top: 100%;
+    left: 100%
   }
 }
 
@@ -206,51 +225,71 @@ Jump move key frames
 /*move up left*/
 @keyframes jump_up_left {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(-100%, -100%) scale(1.4);
+    width: 140%; height: 140%;
+    top: -100%;
+    left: -100%
   }
   100% {
-    transform: translate(-200%, -200%);
+    width: 100%; height: 100%;
+    top: -200%;
+    left: -200%
   }
 }
 
 /*move up right*/
 @keyframes jump_up_right {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(100%, -100%) scale(1.4)
+    width: 140%; height: 140%;
+    top: -100%;
+    left: 100%
   }
   100% {
-    transform: translate(200%, -200%);
+    width: 100%; height: 100%;
+    top: -200%;
+    left: 200%
   }
 }
 
 /*move down left*/
 @keyframes jump_down_left {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(-100%, 100%) scale(1.4);
+    width: 140%; height: 140%;
+    top: 100%;
+    left: -100%
   }
   100% {
-    transform: translate(-200%, 200%);
+    width: 100%; height: 100%;
+    top: 200%;
+    left: -200%
   }
 }
 
 /*move down right*/
 @keyframes jump_down_right {
   0% {
-    transform: translate(0, 0);
+    top: 0;
+    left: 0;
   }
   50% {
-    transform: translate(100%, 100%) scale(1.4);
+    width: 140%; height: 140%;
+    top: 100%;
+    left: 100%
   }
   100% {
-    transform: translate(200%, 200%);
+    width: 100%; height: 100%;
+    top: 200%;
+    left: 200%
   }
 }

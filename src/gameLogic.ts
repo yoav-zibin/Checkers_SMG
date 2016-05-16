@@ -1022,8 +1022,19 @@ module gameLogic {
             return;
           }
           let stateAfterMove: IState = move.stateAfterMove;
+          let miniMoves = stateAfterMove.miniMoves;
+          // Checking that the same piece made all the miniMoves
+          let currentPiecePosition: BoardDelta = null;
+          for (let miniMove of miniMoves) {
+            let fromDelta = miniMove.fromDelta;
+            if (currentPiecePosition && !angular.equals(currentPiecePosition, fromDelta)) {
+              throw new Error("The same piece must make all moves, BUT currentPiecePosition=" +
+                  angular.toJson(currentPiecePosition, true) + " fromDelta=" + angular.toJson(fromDelta, true));
+            }
+            currentPiecePosition = miniMove.toDelta;
+          }
           let board: Board = stateBeforeMove ? stateBeforeMove.board : null;
-          let expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);
+          let expectedMove = createMove(board, miniMoves, turnIndexBeforeMove);
           if (!angular.equals(move, expectedMove)) {
             throw new Error("Expected move=" + angular.toJson(expectedMove, true) +
                 ", but got stateTransition=" + angular.toJson(stateTransition, true))

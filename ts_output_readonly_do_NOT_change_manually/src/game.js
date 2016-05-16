@@ -565,7 +565,11 @@ var game;
         if (!gameLogic.isOwnColor(yourPlayerIndex(), game.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
         }
-        var hasMandatoryJump = gameLogic.hasMandatoryJumps(game.board, yourPlayerIndex());
+        // The same piece must make all the jumps!
+        if (game.humanMiniMoves.length > 0 && !angular.equals(rotatedDelta, game.humanMiniMoves[game.humanMiniMoves.length - 1].toDelta)) {
+            return false;
+        }
+        var hasMandatoryJump = game.humanMiniMoves.length > 0 || gameLogic.hasMandatoryJumps(game.board, yourPlayerIndex());
         var possibleMoves;
         if (hasMandatoryJump) {
             possibleMoves = gameLogic

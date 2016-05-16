@@ -864,8 +864,20 @@ var gameLogic;
             return;
         }
         var stateAfterMove = move.stateAfterMove;
+        var miniMoves = stateAfterMove.miniMoves;
+        // Checking that the same piece made all the miniMoves
+        var currentPiecePosition = null;
+        for (var _i = 0, miniMoves_2 = miniMoves; _i < miniMoves_2.length; _i++) {
+            var miniMove = miniMoves_2[_i];
+            var fromDelta = miniMove.fromDelta;
+            if (currentPiecePosition && !angular.equals(currentPiecePosition, fromDelta)) {
+                throw new Error("The same piece must make all moves, BUT currentPiecePosition=" +
+                    angular.toJson(currentPiecePosition, true) + " fromDelta=" + angular.toJson(fromDelta, true));
+            }
+            currentPiecePosition = miniMove.toDelta;
+        }
         var board = stateBeforeMove ? stateBeforeMove.board : null;
-        var expectedMove = createMove(board, stateAfterMove.miniMoves, turnIndexBeforeMove);
+        var expectedMove = createMove(board, miniMoves, turnIndexBeforeMove);
         if (!angular.equals(move, expectedMove)) {
             throw new Error("Expected move=" + angular.toJson(expectedMove, true) +
                 ", but got stateTransition=" + angular.toJson(stateTransition, true));
@@ -1266,7 +1278,7 @@ var game;
             return '';
         // For local testing
         if (isLocalTesting())
-            return "//graph.facebook.com/" +
+            return "http://graph.facebook.com/" +
                 (playerIndex == 1 ? "10153589934097337" : "10153693068502449") + "/picture?height=200&width=400";
         if (game.shouldRotateBoard)
             playerIndex = 1 - playerIndex;
@@ -1351,7 +1363,7 @@ var game;
         var avatarImageUrl = myPlayerInfo.avatarImageUrl;
         return hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
             !isLocalTesting() ? '' :
-                pieceColorIndex == 1 ? "//graph.facebook.com/10153589934097337/picture" : "//graph.facebook.com/10153693068502449/picture";
+                pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
     }
     game.getAvatarPieceSrc = getAvatarPieceSrc;
     var dir = 'imgs/';
@@ -1456,7 +1468,11 @@ var game;
         if (!gameLogic.isOwnColor(yourPlayerIndex(), game.board[rotatedDelta.row][rotatedDelta.col].substr(0, 1))) {
             return false;
         }
-        var hasMandatoryJump = gameLogic.hasMandatoryJumps(game.board, yourPlayerIndex());
+        // The same piece must make all the jumps!
+        if (game.humanMiniMoves.length > 0 && !angular.equals(rotatedDelta, game.humanMiniMoves[game.humanMiniMoves.length - 1].toDelta)) {
+            return false;
+        }
+        var hasMandatoryJump = game.humanMiniMoves.length > 0 || gameLogic.hasMandatoryJumps(game.board, yourPlayerIndex());
         var possibleMoves;
         if (hasMandatoryJump) {
             possibleMoves = gameLogic
@@ -1659,7 +1675,7 @@ var aiService;
                 // We need to make another jump: update currentBoard, currentPos, nextPos
                 currentBoard = iMove.stateAfterMove.board;
                 currentPos = nextPos;
-                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move
+                nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move for that jumping piece
             } while (true);
             allPossibleMoves.push(miniMove);
         }

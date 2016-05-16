@@ -832,6 +832,58 @@ let endGameForBlack2: Board = [
         ["WM","--","DS","--","DS","--","DS","--"]
       ], BLACK_TURN_INDEX, NO_ONE_WINS);  
   });
+  
+  it("The same piece must do all the jumps", function () {
+    expectMegaMove(OK, BLACK_TURN_INDEX, 
+      [
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'WM', '--', 'DS', '--'],
+        ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+      ], [
+        {fromDelta: {row: 2, col: 5}, toDelta: {row: 4, col: 3}},
+        {fromDelta: {row: 4, col: 3}, toDelta: {row: 6, col: 1}},
+      ],
+      [
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+      ], WHITE_TURN_INDEX, NO_ONE_WINS);
+      
+    expectMegaMove(ILLEGAL, BLACK_TURN_INDEX, 
+      [
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'WM', '--', 'DS', '--'],
+        ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+      ],[
+        {fromDelta: {row: 2, col: 5}, toDelta: {row: 4, col: 3}},
+        {fromDelta: {row: 4, col: 1}, toDelta: {row: 6, col: 3}},
+      ],
+      [
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+        ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
+        ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+      ], WHITE_TURN_INDEX, NO_ONE_WINS);  
+  });
 
   
   it('Sample game', function () {

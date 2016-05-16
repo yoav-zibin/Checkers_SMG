@@ -739,6 +739,52 @@ describe('gameLogic unit tests:', function () {
             ["WM", "--", "DS", "--", "DS", "--", "DS", "--"]
         ], BLACK_TURN_INDEX, NO_ONE_WINS);
     });
+    it("The same piece must do all the jumps", function () {
+        expectMegaMove(OK, BLACK_TURN_INDEX, [
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'WM', '--', 'DS', '--'],
+            ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+        ], [
+            { fromDelta: { row: 2, col: 5 }, toDelta: { row: 4, col: 3 } },
+            { fromDelta: { row: 4, col: 3 }, toDelta: { row: 6, col: 1 } },
+        ], [
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectMegaMove(ILLEGAL, BLACK_TURN_INDEX, [
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'WM', '--', 'DS', '--'],
+            ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+        ], [
+            { fromDelta: { row: 2, col: 5 }, toDelta: { row: 4, col: 3 } },
+            { fromDelta: { row: 4, col: 1 }, toDelta: { row: 6, col: 3 } },
+        ], [
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
+            ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
+            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
+        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+    });
     it('Sample game', function () {
         // Sample game: http://en.wikipedia.org/wiki/English_draughts#Sample_game
         function idToDelta(id) {
@@ -866,8 +912,8 @@ describe('gameLogic unit tests:', function () {
         var turn = BLACK_TURN_INDEX;
         var movesNum = moves.length;
         expect(movesNum).toBe(46 * 2 + 1); // Black 46th move ends the game.
-        for (var _i = 0; _i < moves.length; _i++) {
-            var move = moves[_i];
+        for (var _i = 0, moves_1 = moves; _i < moves_1.length; _i++) {
+            var move = moves_1[_i];
             var fromDelta = idToDelta(move[0]);
             var toDelta = idToDelta(move[1]);
             var m = gameLogic.createMove(board, [{ fromDelta: fromDelta, toDelta: toDelta }], turn);
