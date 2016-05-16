@@ -130,6 +130,9 @@ module game {
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
   }
 
+  function setAnimationInterval() {
+    animationInterval = $interval(advanceToNextAnimation, 700);
+  }
   function clearAnimationInterval() {
     if (animationInterval) {
       $interval.cancel(animationInterval);
@@ -186,7 +189,7 @@ module game {
       if (isMyTurn()) makeMove(gameLogic.createInitialMove());
     } else if (!shouldAnimate) {
       board = params.move.stateAfterMove.board;
-      animationInterval = $interval(advanceToNextAnimation, 700); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
+      setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
     } else {
       // params.stateBeforeMove is null only in the 2nd move
       // (and there are no animations to show in the initial move since we're simply setting the board)
@@ -199,7 +202,7 @@ module game {
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.  
       remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);  
-      animationInterval = $interval(advanceToNextAnimation, 700);
+      setAnimationInterval();
     }
     updateCache();
   }
