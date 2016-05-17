@@ -44,6 +44,8 @@ module game {
   // for drag-n-drop and ai move animations
   export let dndStartPos: BoardDelta = null;
   export let dndElem: HTMLElement = null;
+  // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
+  export let hadLoadingError = false;
 
   function getTranslations(): Translations {
     return {
@@ -167,6 +169,7 @@ module game {
   // for drag-n-drop and ai move animations
   export function updateUI(params: IUpdateUI): void {
     log.info("Game got updateUI:", params);
+    hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
     didMakeMove = false; // Only one move per updateUI
     currentUpdateUI = params;
     clearDragNDrop();
@@ -402,8 +405,6 @@ module game {
         replaceProtocol(imgUrl);
   }
   
-  // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
-  export let hadLoadingError = false;
   export function onImgError() {
     if (hadLoadingError) return;
     hadLoadingError = true;

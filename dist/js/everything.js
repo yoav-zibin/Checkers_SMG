@@ -922,6 +922,8 @@ var game;
     // for drag-n-drop and ai move animations
     game.dndStartPos = null;
     game.dndElem = null;
+    // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
+    game.hadLoadingError = false;
     function getTranslations() {
         return {
             "CHECKERS_RULES_TITLE": {
@@ -1039,6 +1041,7 @@ var game;
     // for drag-n-drop and ai move animations
     function updateUI(params) {
         log.info("Game got updateUI:", params);
+        game.hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
         game.didMakeMove = false; // Only one move per updateUI
         game.currentUpdateUI = params;
         clearDragNDrop();
@@ -1259,8 +1262,6 @@ var game;
             encodeURIComponent(replaceToHttp(imgUrl)) :
             replaceProtocol(imgUrl);
     }
-    // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
-    game.hadLoadingError = false;
     function onImgError() {
         if (game.hadLoadingError)
             return;
