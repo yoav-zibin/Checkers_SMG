@@ -179,7 +179,7 @@ module game {
     // "endMatchScores":null  vs completley missing endMatchScores.
     // It's enought to check stateAfterMove anyway.
     let shouldAnimate = !lastHumanMove || !angular.equals(params.move.stateAfterMove, lastHumanMove.stateAfterMove);
-    lastHumanMove = null;
+    // lastHumanMove = null; On purpose not nullifying it because the platform may send the same updateUI again.
 
     //Rotate the board 180 degrees, hence in the point of current
     //player's view, the board always face towards him/her;
