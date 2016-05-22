@@ -12,7 +12,7 @@ var game;
     game.board = null;
     game.shouldRotateBoard = false;
     game.didMakeMove = false; // You can only make one move per updateUI
-    game.humanMiniMoves = []; // We collect all the mini-moves into one mega-move.  
+    game.humanMiniMoves = []; // We collect all the mini-moves into one mega-move.
     game.lastHumanMove = null; // We don't animate moves we just made.
     game.remainingAnimations = [];
     game.animationInterval = null;
@@ -172,7 +172,7 @@ var game;
                 game.board = gameLogic.getInitialBoard();
             // We calculate the AI move only after the animation finishes,
             // because if we call aiService now
-            // then the animation will be paused until the javascript finishes.  
+            // then the animation will be paused until the javascript finishes.
             game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
             setAnimationInterval();
         }
@@ -433,7 +433,7 @@ var game;
             return "piece";
         var piece = getPiece(row, col);
         var pieceColor = gameLogic.getColor(piece);
-        // Black&white are reversed in the UI because black should start. 
+        // Black&white are reversed in the UI because black should start.
         return pieceColor === CONSTANTS.BLACK ? 'piece avatar_piece lighter_avatar_piece' : 'piece avatar_piece darker_avatar_piece';
     }
     game.getPieceClass = getPieceClass;
@@ -531,9 +531,6 @@ var game;
                 //let filter = "brightness(100%) drop-shadow(0.3rem 0.3rem 0.1rem black)";
                 //style['filter'] = filter;
                 //style['-webkit-filter'] = filter;
-                var transform = "scale(1.2)"; // make it slightly bigger (as if it's closer to the person dragging)
-                style['transform'] = transform;
-                style['-webkit-transform'] = transform;
                 setDndElemPos(dndPos, cellSize);
                 updateCacheAndApply(); // To show the droppable squares, see .can_drop_on_square
             }
@@ -589,13 +586,17 @@ var game;
      * Set the TopLeft of the element.
      */
     function setDndElemPos(pos, cellSize) {
+        var style = game.dndElem.style;
         var top = cellSize.height / 10;
         var left = cellSize.width / 10;
         var originalSize = getCellPos(game.dndStartPos.row, game.dndStartPos.col, cellSize);
-        if (game.dndElem !== null) {
-            game.dndElem.style.left = (pos.left - originalSize.left + left) + "px";
-            game.dndElem.style.top = (pos.top - originalSize.top + top) + "px";
-        }
+        var deltaX = (pos.left - originalSize.left + left);
+        var deltaY = (pos.top - originalSize.top + top);
+        // make it 20% bigger (as if it's closer to the person dragging).
+        var transform = "translate(" + deltaX + "px," + deltaY + "px) scale(1.2)";
+        style['transform'] = transform;
+        style['-webkit-transform'] = transform;
+        style['will-change'] = "transform"; // https://developer.mozilla.org/en-US/docs/Web/CSS/will-change
     }
     /**
      * Get the position of the cell.
