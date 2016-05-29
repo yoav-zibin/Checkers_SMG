@@ -144,7 +144,10 @@ Animation
 }
 
 /****************************************
-Simple move key frames
+Simple move key frames.
+I know that animating using transform is more efficient than animating top&left,
+but due to pixel-snapping, it looks less pretty here (and it animates nicely/fast on nexus5).
+https://www.paulirish.com/2012/why-moving-elements-with-translate-is-better-than-posabs-topleft/
 ****************************************/
 /*move up left*/
 @keyframes move_up_left {

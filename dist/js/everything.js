@@ -1222,13 +1222,13 @@ var game;
     TLDR: iOS has CORS problems with FB avatars, so I can only load FB images using a proxy.
   
     // On iOS and Safari, when loading:
-    //  http://graph.facebook.com/10152824135331125/picture
+    //  https://graph.facebook.com/10152824135331125/picture
     // it fails with "status":0, I see this errror in safari:
     // Failed to load resource: Request header field Accept-Encoding is not allowed by Access-Control-Allow-Headers.
     Nothing works...
     Finally found the issue, and there is nothing I can do about it:
     Safari doesn't set CORS on a redirect correctly:
-    http://stackoverflow.com/questions/32332919/safari-fails-cors-request-after-302-redirect
+    https://stackoverflow.com/questions/32332919/safari-fails-cors-request-after-302-redirect
     https://bugs.webkit.org/show_bug.cgi?id=98838
     I tried removing the headers: Accept, Accept-Encoding, Content-Type
     headers: {
