@@ -1,3 +1,9 @@
+/* on Firefox mobile, long press on an image opens the save/copy image dialog. http://stackoverflow.com/questions/3413683/disabling-the-context-menu-on-long-taps-on-android 
+  I can't put it on all games, in emulator, because it prevents clicks on images, and some games use ng-click on <img>. */
+img {
+  pointer-events: none;
+}
+
 body {
   background: #FCFAF2;
 }
