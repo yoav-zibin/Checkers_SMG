@@ -86,7 +86,8 @@ var game;
         };
     }
     function init() {
-        log.alwaysLog("Checkers version 1.1");
+        log.alwaysLog("Checkers version 1.2");
+        registerServiceWorker();
         gameArea = document.getElementById("gameArea");
         if (!gameArea)
             throw new Error("Can't find gameArea div!");
@@ -103,6 +104,17 @@ var game;
         dragAndDropService.addDragListener("gameArea", handleDragEvent);
     }
     game.init = init;
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            var n = navigator;
+            log.log('Calling serviceWorker.register');
+            n.serviceWorker.register('service-worker.js').then(function (registration) {
+                log.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }).catch(function (err) {
+                log.log('ServiceWorker registration failed: ', err);
+            });
+        }
+    }
     function setAnimationInterval() {
         game.animationInterval = $interval(advanceToNextAnimation, 700);
     }

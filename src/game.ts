@@ -113,7 +113,8 @@ module game {
   }
 
   export function init() {
-    log.alwaysLog("Checkers version 1.1");
+    log.alwaysLog("Checkers version 1.2");
+    registerServiceWorker();
     gameArea = document.getElementById("gameArea");
     if (!gameArea) throw new Error("Can't find gameArea div!");
 
@@ -130,6 +131,18 @@ module game {
     });
 
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
+  }
+
+  function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      let n: any = navigator;
+      log.log('Calling serviceWorker.register');
+      n.serviceWorker.register('service-worker.js').then(function(registration: any) {
+        log.log('ServiceWorker registration successful with scope: ',    registration.scope);
+      }).catch(function(err: any) {
+        log.log('ServiceWorker registration failed: ', err);
+      });
+    }
   }
 
   function setAnimationInterval() {
@@ -645,7 +658,7 @@ module game {
     let deltaX: number = (pos.left - originalSize.left + left);
     let deltaY: number = (pos.top - originalSize.top + top);
     // make it 20% bigger (as if it's closer to the person dragging).
-    let transform = "translate(" + deltaX + "px," + deltaY + "px) scale(1.2)";  
+    let transform = "translate(" + deltaX + "px," + deltaY + "px) scale(1.2)";
     style['transform'] = transform;
     style['-webkit-transform'] = transform;
     style['will-change'] = "transform"; // https://developer.mozilla.org/en-US/docs/Web/CSS/will-change

@@ -9,7 +9,7 @@ module.exports = function(grunt) {
   // $ brew install imagemagick
   // Example command to resize+pad an image:
   // convert -define jpeg:size=1024x1024 auto_resize_images/src.png -thumbnail '1025x500>' -background white -gravity center -extent 1025x500 auto_resize_images/output.png
-          
+
   var src_img = "src.png";
   var src_img_width_to_height_ratio = 1024/1024;
   var src_img_size = "1024x1024";
@@ -85,7 +85,7 @@ module.exports = function(grunt) {
     if (dimensions != '' + (width_height.length == 1 ? width : width + "x" + height)) {
       throw new Error("Illegal dimension size in filename '" + desired_size + "'. You should have a dimension suffix, e.g., 'blabla-512x200'");
     }
-    
+
     // Determining whether the limiting factor is height or width
     /*var is_height_limiting = width / src_img_width_to_height_ratio > height;
     var scale_to_width = is_height_limiting ? height * src_img_width_to_height_ratio : width;
@@ -97,8 +97,8 @@ module.exports = function(grunt) {
       '/temp/' + dimensions + '.bmp -s format png --padToHeightWidth ' +
       height + ' ' + width +
       ' --padColor FFFFFF --out ' + output_directory + '/' + desired_size + ".png");
-    */  
-    
+    */
+
     commands.push(
       "convert -define jpeg:size=" + src_img_size + " " + directory + "/src.png -thumbnail '" +
          width + 'x' + height + ">' -background none -gravity center -colors 256 -quality 90 -depth 8 -extent " + width + 'x' + height + " " + output_directory + '/' + desired_size + ".png");
@@ -132,6 +132,16 @@ module.exports = function(grunt) {
         expand: true,
         src: 'imgs/*.*',
         dest: 'dist/'
+      },
+      sw: {
+        src: 'service-worker.js',
+        dest: 'dist/service-worker.js',
+        options: {
+          process: function (content, srcpath) {
+            // Adding timestamp so whenever we run grunt, we will have a new service-worker, and precache everything.
+            return '// ' + (new Date()) + '\n' + content;
+          },
+        },
       },
     },
     concat: {
@@ -185,15 +195,7 @@ module.exports = function(grunt) {
         options: {
           basePath: '.',
           cache: [
-            '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js',
-            '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.min.js',
-            '//cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js',
-            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css',
-            // glyphicons for the carousel
-            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.woff',
-            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.ttf',
-            '//yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js',
-            '//yoav-zibin.github.io/emulator/main.css',
+            // Use the same list in service-worker.js !
             'js/everything.min.js',
             'css/everything.min.css',
             "imgs/white_man.png",
@@ -203,6 +205,15 @@ module.exports = function(grunt) {
             "imgs/avatar_white_crown.svg",
             "imgs/avatar_black_crown.svg",
             "imgs/board.jpg",
+            '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js',
+            '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.min.js',
+            '//cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js',
+            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css',
+            // glyphicons for the carousel
+            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.woff',
+            '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.ttf',
+            '//yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js',
+            '//yoav-zibin.github.io/emulator/main.css',
           ],
           network: [
             // I do '*' because we need to load avatars from FB and maybe other places on the web.
