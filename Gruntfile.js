@@ -216,7 +216,7 @@ module.exports = function(grunt) {
             '//yoav-zibin.github.io/emulator/main.css',
           ],
           network: [
-            // I do '*' because we need to load avatars from FB and maybe other places on the web.
+            // I do '*' because we need to load avatars from FB and maybe other places on the web (also 'service-worker.js')
             '*'
           ],
           timestamp: true
