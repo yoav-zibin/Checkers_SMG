@@ -1569,7 +1569,7 @@ var game;
     }
     game.updateCache = updateCache;
 })(game || (game = {}));
-angular.module('myApp', ['ngTouch', 'ui.bootstrap', 'gameServices'])
+angular.module('myApp', ['gameServices'])
     .run(function () {
     $rootScope['game'] = game;
     game.init();

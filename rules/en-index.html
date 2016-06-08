@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+html, body {
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.overlayModal {
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+}
+.modal-content {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  bottom: 0px;
+  right: 0px;
+  margin: 30px;
+  z-index: 1001;
+  background-color: rgb(250,250,250);
+  -webkit-background-clip: padding-box;
+  background-clip: padding-box;
+  border: 1px solid #999;
+  border: 1px solid rgba(0, 0, 0, .2);
+  border-radius: 6px;
+  outline: 0;
+  -webkit-box-shadow: 0 3px 9px rgba(0, 0, 0, .5);
+  box-shadow: 0 3px 9px rgba(0, 0, 0, .5);
+  padding: 15px;
+  -webkit-overflow-scrolling: touch;
+  overflow-y: scroll;
+}
+.close {
+  float: right;
+  font-size: 21px;
+  font-weight: bold;
+  line-height: 1;
+  color: #000;
+  text-shadow: 0 1px 0 #fff;
+  filter: alpha(opacity=20);
+  opacity: .2;
+}
+</style>
+</head>
+<body>
+<div id="game_rules" class="overlayModal" onclick="closeGameRules(event)">
+  <div class="modal-content">
+    <button type="button" class="close" onclick="closeGameRules()" aria-label="Close"><span aria-hidden="true">×</span></button>
+    <h2>Rules of Checkers</h2>
+    Checkers is played on an 8x8 chequered board with twelve pieces per side.
+    Two opponents are playing, alternating turns on opposite sides of the gameboard.
+    The pieces move and capture diagonally forward, until they reach the opposite end of the board,
+    when they are crowned and may thereafter move and capture both backward and forward.
+    Enemy pieces are captured by jumping over them.
+    <h3>Move rules</h3>
+    There are two different ways to make a move:
+    <ul>
+    <li>A <b>simple move</b> consists of sliding a piece one square diagonally to an adjacent unoccupied dark square. 
+      Uncrowned pieces may move only diagonally forward; kings may move in any diagonal direction.
+    <li>A <b>jump</b> is a move from a square diagonally adjacent to an opponent's piece to an empty square immediately beyond it,
+      in the same direction.
+      (Thus jumping over the square containing the opponent's piece.)
+      <br>
+      Uncrowned pieces may jump only diagonally forward; kings may jump in any diagonal direction.
+      A jumped piece is considered "captured" and removed from the game. 
+      Any piece, whether crowned or not, may jump a king.
+      <br>
+      Multiple jumps are possible, if after one jump, another piece is immediately eligible to be jumped - 
+      even if that jump is in a different diagonal direction. 
+      <br>
+      If more than one multiple-jump move is available, 
+      the player may choose which piece to jump with, and which sequence of jumps to make. 
+      The jumping sequence chosen is not required to be the one that maximizes the number of jumps in the turn; 
+      however, a player must make all available jumps in the sequence chosen.
+    </ul>
+    Jumping is always mandatory: if a player has the option to jump, 
+    he must take it, even if doing so results in disadvantage for the jumping player. 
+    (For example, a mandated single jump might set up the player such that the opponent has a multi-jump in reply.)
+    <h4>Kings</h4>
+    If a player's piece moves into the kings row on the opponent's side of the board, 
+    that piece is said to be crowned, becoming a king and gaining the ability to move both forward and backward. 
+    <br>
+    If a player's uncrowned piece jumps into the kings row, the current move terminates; 
+    the piece cannot continue on by jumping back out (as in a multiple jump), until the next move.
+    <h3>End of game</h3>
+    A player wins by capturing all of the opponent's pieces or by leaving the opponent with no legal move.
+
+    <button type="button" class="close" onclick="closeGameRules()" aria-label="Close"><span aria-hidden="true">×</span></button>
+  </div>
+</div>
+<script>
+function closeGameRules(evt) {
+  if (evt && evt.target !== evt.currentTarget) return;
+  document.getElementById("game_rules").style.display = "none";
+}
+try {
+  if (window.localStorage) {
+    if (localStorage.getItem('shownGameRules')) closeGameRules();
+    localStorage.setItem('shownGameRules', 't');
+  }
+} catch (e) {}
+</script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-// Mon Jun 06 2016 18:20:39 GMT-0400 (EDT)
+// Wed Jun 08 2016 18:10:03 GMT-0400 (EDT)
 'use strict';
 
 // The files we want to cache
@@ -16,12 +16,6 @@ var urlsToCache = [
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_black_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/board.jpg",
   '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js',
-  '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.min.js',
-  '//cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js',
-  '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css',
-  // glyphicons for the carousel
-  '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.woff',
-  '//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/fonts/glyphicons-halflings-regular.ttf',
   '//yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js',
   '//yoav-zibin.github.io/emulator/main.css',
 ];

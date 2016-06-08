@@ -17,22 +17,9 @@
   <link crossorigin="anonymous" rel="stylesheet" type="text/css" href="https://yoav-zibin.github.io/emulator/main.css">
   <!-- /build -->
 
-
-  <!-- build:[href] //maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css -->
-  <link crossorigin="anonymous" rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.css">
-  <!-- /build -->
-
   <!-- The crossorigin attribute controls, for scripts that are obtained from other origins, whether error information will be exposed. -->
   <!-- build:[src] //yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js -->
   <script crossorigin="anonymous" src="https://yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.js"></script>
-  <!-- /build -->
-
-  <!-- For the game rules/instructions, I use carousel from Angular UI + Bootstrap + ngTouch for swiping the rules slides. -->
-  <!-- build:[src] //yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.min.js -->
-  <script crossorigin="anonymous" src="https://yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular-touch.js"></script>
-  <!-- /build -->
-  <!-- build:[src] //cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.min.js -->
-  <script crossorigin="anonymous" src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.js"></script>
   <!-- /build -->
 
   <!-- build:[src] //yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js -->
@@ -46,61 +33,6 @@
   <!-- /build -->
 </head>
 <div ng-cloak >
-  <div class="overlayModal" ng-click="game.clickedOnModal($event)"
-      ng-class="{zeroOpacity: !game.isHelpModalShown, oneOpacity: game.isHelpModalShown}" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" ng-click="game.isHelpModalShown = false" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">
-            {{ 'CHECKERS_RULES_TITLE' | translate }}
-          </h4>
-        </div>
-        <div class="modal-body">
-          <carousel style="height: 150px">
-            <slide>
-              <table>
-                <tr>
-                  <td>
-                    {{ 'CHECKERS_RULES_SLIDE1' | translate }}
-                  </td>
-                  <td>
-                    <img src="imgs/white_man.png" alt="Black piece" class="help_piece">
-                    <img src="imgs/black_man.png" alt="White piece" class="help_piece">
-                  </td>
-                </tr>
-              </table>
-            </slide>
-            <slide>
-              <table>
-                <tr>
-                  <td>
-                    {{ 'CHECKERS_RULES_SLIDE2' | translate }}
-                  </td>
-                  <td>
-                    <img src="imgs/white_cro.png" alt="Black king" class="help_piece">
-                    <img src="imgs/black_cro.png" alt="White king" class="help_piece">
-                  </td>
-                </tr>
-              </table>
-            </slide>
-            <slide>
-                {{ 'CHECKERS_RULES_SLIDE3' | translate }}
-            </slide>
-            <slide>
-                {{ 'CHECKERS_RULES_SLIDE4' | translate }}
-            </slide>
-          </carousel>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" ng-click="game.isHelpModalShown = false">
-            {{ 'CHECKERS_CLOSE' | translate }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="gameArea">
     <img class="bigAvatar1" 
         onerror="game.onImgError()"
