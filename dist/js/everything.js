@@ -904,7 +904,6 @@ var gameLogic;
 ;
 var game;
 (function (game) {
-    game.isHelpModalShown = false;
     var CONSTANTS = gameLogic.CONSTANTS;
     var gameArea = null;
     // Global variables are cleared when getting updateUI.
@@ -925,68 +924,7 @@ var game;
     // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
     game.hadLoadingError = false;
     function getTranslations() {
-        return {
-            "CHECKERS_RULES_TITLE": {
-                "en": "Rules of Checkers",
-                "iw": "כללים של משחק דמקה",
-                "pt": "Regras de Damas",
-                "zh": "英国跳棋规则",
-                "el": "Κανόνες Ντάμα",
-                "fr": "Règles de Checkers",
-                "hi": "चेकर्स के नियम",
-                "es": "Reglas de Damas"
-            },
-            "CHECKERS_RULES_SLIDE1": {
-                "en": "Regular pieces move one step diagonally forward.",
-                "iw": "כל שחקן מניע בתורו אבן-משחק באלכסון",
-                "pt": "pedaços regulares mover um passo na diagonal para a frente.",
-                "zh": "定期件移动一步斜前方。",
-                "el": "Η τακτική κομμάτια προχωρήσουμε ένα βήμα διαγώνια προς τα εμπρός.",
-                "fr": "morceaux réguliers se déplacent d'un pas en diagonale avant.",
-                "hi": "नियमित रूप से टुकड़े एक कदम तिरछे आगे बढ़ना है।",
-                "es": "trozos regulares se mueven un paso en diagonal hacia delante."
-            },
-            "CHECKERS_RULES_SLIDE2": {
-                "en": "A regular piece becomes a king when it reaches the final row. A king can also move backwards.",
-                "iw": "כשאבן משחק מגיעה לשורה האחרונה, היא הופכת להיות \"מלך\". מלך, בניגוד לאבן רגילה, יכול לנוע לכל הכיוונים באלכסון (כלומר גם אחורה).",
-                "pt": "Um pedaço comum torna-se um rei quando se atinge a linha final. Um rei também pode se mover para trás.",
-                "zh": "定期一块变成一个国王，当它到达最后一排。 A君也可以向后移动。",
-                "el": "Μια τακτική κομμάτι γίνεται βασιλιάς όταν φτάσει την τελική γραμμή. Ένας βασιλιάς μπορεί επίσης να κινηθεί προς τα πίσω.",
-                "fr": "Un morceau régulier devient un roi quand il atteint la dernière rangée. Un roi peut également se déplacer vers l'arrière.",
-                "hi": "एक नियमित रूप से टुकड़े के एक राजा जब यह अंतिम पंक्ति तक पहुँचता हो जाता है। एक राजा भी पीछे की ओर स्थानांतरित कर सकते हैं।",
-                "es": "Una pieza normal se convierte en un rey cuando se llega a la última fila. Un rey puede moverse hacia atrás."
-            },
-            "CHECKERS_RULES_SLIDE3": {
-                "en": "Capturing is done jumping over adjacent opponent pieces. It's mandatory! Multiple successive jumps can zigzag, i.e., change diagonal direction.",
-                "iw": "דילוג (או אכילה) מתבצע כאשר אבן משחק מונחת במשבצת סמוכה לאבן היריב, ומעבר לאבן היריב יש מקום פנוי. כאשר דילוג אפשרי, חובה לבצע אותו.",
-                "pt": "Captura é feita a saltar sobre as peças oponente adjacentes. É obrigatório! Múltiplos saltos sucessivos pode ziguezague, ou seja, mudar de direção diagonal.",
-                "zh": "捕获完成后跳过相邻的对手件。这是强制性的！多个连续跳跃可以曲折，即改变对角线方向。",
-                "el": "Σύλληψη γίνεται άλμα πάνω από παρακείμενα κομμάτια του αντιπάλου. Είναι υποχρεωτική! Πολλαπλές διαδοχικές άλματα μπορεί να ζιγκ-ζαγκ, δηλαδή, να αλλάξει διαγώνια κατεύθυνση.",
-                "fr": "Capturing se fait sauter sur des morceaux adversaire adjacents. Il est obligatoire! sauts successifs multiples peuvent zigzag, à savoir, changer de direction diagonale.",
-                "hi": "कैप्चरिंग आसन्न प्रतिद्वंद्वी टुकड़े पर कूद किया जाता है। यह अनिवार्य है! एकाधिक लगातार कूदता है, वक्र कर सकते हैं जैसे कि, विकर्ण दिशा बदल जाते हैं।",
-                "es": "La captura se realiza saltando sobre las piezas adyacentes oponente. ¡Es obligatorio! saltos sucesivos múltiples pueden zigzag, es decir, cambiar de dirección diagonal."
-            },
-            "CHECKERS_RULES_SLIDE4": {
-                "en": "A player that can't move or lost all its pieces, loses the game.",
-                "iw": "שחקן שלא יכול לזוז או שאיבד את כל האבנים, מפסיד את המשחק.",
-                "pt": "Um jogador que não pode se mover ou perdido todas as suas peças, perde o jogo.",
-                "zh": "不能移动或丧失其所有作品的球员，失去了比赛。",
-                "el": "Ένας παίκτης που δεν μπορεί να κινηθεί ή να χάσει όλα τα κομμάτια του, χάνει το παιχνίδι.",
-                "fr": "Un joueur qui ne peut pas se déplacer ou perdu toutes ses pièces, perd la partie.",
-                "hi": "एक खिलाड़ी है कि स्थानांतरित करने या खो नहीं कर सकते हैं अपने सभी टुकड़े, खेल खो देता है।",
-                "es": "Un jugador que no se puede mover o perdido todas sus piezas, pierde el juego."
-            },
-            "CHECKERS_CLOSE": {
-                "en": "Close",
-                "iw": "סגור",
-                "pt": "Fechar",
-                "zh": "继续游戏",
-                "el": "Κοντά",
-                "fr": "Fermer",
-                "hi": "बंद करे",
-                "es": "Cerrar"
-            },
-        };
+        return {};
     }
     function init() {
         log.alwaysLog("Checkers version 1.2");
@@ -996,7 +934,6 @@ var game;
             throw new Error("Can't find gameArea div!");
         translate.setTranslations(getTranslations());
         translate.setLanguage('en');
-        console.log("Translation of 'CHECKERS_RULES_TITLE' is " + translate('CHECKERS_RULES_TITLE'));
         resizeGameAreaService.setWidthToHeight(1);
         moveService.setGame({
             minNumberOfPlayers: 2,
@@ -1531,15 +1468,6 @@ var game;
             height: gameArea.clientHeight / CONSTANTS.ROW
         };
     }
-    function clickedOnModal(evt) {
-        if (evt.target === evt.currentTarget) {
-            evt.preventDefault();
-            evt.stopPropagation();
-            game.isHelpModalShown = false;
-        }
-        return true;
-    }
-    game.clickedOnModal = clickedOnModal;
     game.cachedSquareClass = getEmpty8Arrays();
     game.cachedPieceContainerClass = getEmpty8Arrays();
     game.cachedPieceClass = getEmpty8Arrays();
