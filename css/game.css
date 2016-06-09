@@ -78,10 +78,6 @@ body {
   height: 40%;
   position: absolute;
 }
-.help_piece {
-  height:60px;
-  padding: 10px;
-}
 .avatar_piece {
   border-radius: 50%;
 }
@@ -98,10 +94,6 @@ body {
 }
 .can_drop_on_square {
   background: rgba(1255,255,0,0.4);
-}
-
-td {
-  padding:0 5px 0 5px;
 }
 
 /****************************************
