@@ -1,0 +1,14 @@
+2016-06-10 06:21:50.880 Google Chrome[96909:2880424] NSWindow warning: adding an unknown subview: <FullSizeContentView: 0x7fe158bd09c0>. Break on NSLog to debug.
+2016-06-10 06:21:50.880 Google Chrome[96909:2880424] Call stack:
+(
+    "+callStackSymbols disabled for performance reasons"
+)
+Jun 10 06:21:52  Google Chrome Helper[96919] <Error>: CGAffineTransformInvert: singular matrix.
+[96953,1974501376:06:21:54.118664] Native Client module will be loaded at base address 0x0000228400000000
+Jun 10 06:21:55  Google Chrome Helper[96919] <Error>: CGAffineTransformInvert: singular matrix.
+Jun 10 06:21:59  Google Chrome Helper[96919] <Error>: CGAffineTransformInvert: singular matrix.
+Jun 10 06:21:59  Google Chrome Helper[96919] <Error>: CGAffineTransformInvert: singular matrix.
+Jun 10 06:22:00  Google Chrome Helper[96955] <Error>: CGAffineTransformInvert: singular matrix.
+Jun 10 06:22:02  Google Chrome Helper[96955] <Error>: CGAffineTransformInvert: singular matrix.
+Jun 10 06:22:15  Google Chrome Helper[96969] <Error>: CGAffineTransformInvert: singular matrix.
+2016-06-10 06:22:19.989 Google Chrome Helper[96960:2881677] Couldn't set selectedTextBackgroundColor from default ()
