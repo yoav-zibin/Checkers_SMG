@@ -49,7 +49,7 @@ module game {
     return {};
   }
 
-  function getStateForOgImage() {
+  export function getStateForOgImage() {
     if (!currentUpdateUI || !currentUpdateUI.move) {
       log.warn("Got stateForOgImage without currentUpdateUI!");
       return;
@@ -76,7 +76,7 @@ module game {
   } 
 
   export function init() {
-    log.alwaysLog("Checkers version 1.2");
+    log.alwaysLog("Checkers version 1.3");
     registerServiceWorker();
     gameArea = document.getElementById("gameArea");
     if (!gameArea) throw new Error("Can't find gameArea div!");

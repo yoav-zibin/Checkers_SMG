@@ -49,8 +49,9 @@ var game;
         }
         return boardStr;
     }
+    game.getStateForOgImage = getStateForOgImage;
     function init() {
-        log.alwaysLog("Checkers version 1.2");
+        log.alwaysLog("Checkers version 1.3");
         registerServiceWorker();
         gameArea = document.getElementById("gameArea");
         if (!gameArea)
