@@ -23,6 +23,32 @@ var game;
     function getTranslations() {
         return {};
     }
+    function getStateForOgImage() {
+        if (!game.currentUpdateUI || !game.currentUpdateUI.move) {
+            log.warn("Got stateForOgImage without currentUpdateUI!");
+            return;
+        }
+        var state = game.currentUpdateUI.move.endMatchScores ? game.currentUpdateUI.stateBeforeMove : game.currentUpdateUI.move.stateAfterMove;
+        var board = state.board;
+        var boardStr = '';
+        for (var row = 0; row < 8; row++) {
+            for (var col = 0; col < 8; col++) {
+                // First row in state is top row, so I need to reverse rows.
+                // Also, rotating the board if I'm index=1.
+                var cell = game.currentUpdateUI.yourPlayerIndex == 1 ? board[row][7 - col] : board[7 - row][col];
+                if (cell == "--" || cell == "DS") {
+                    boardStr += "x";
+                }
+                else {
+                    // switching white&black
+                    var color = cell.substr(0, 1);
+                    var kind = cell.substr(1, 1);
+                    boardStr += (color == "W" ? "B" : "W") + kind;
+                }
+            }
+        }
+        return boardStr;
+    }
     function init() {
         log.alwaysLog("Checkers version 1.2");
         registerServiceWorker();
@@ -36,7 +62,8 @@ var game;
             minNumberOfPlayers: 2,
             maxNumberOfPlayers: 2,
             checkMoveOk: gameLogic.checkMoveOk,
-            updateUI: updateUI
+            updateUI: updateUI,
+            getStateForOgImage: getStateForOgImage,
         });
         dragAndDropService.addDragListener("gameArea", handleDragEvent);
     }
@@ -339,13 +366,16 @@ var game;
         if (!hasAvatarImgUrl(myAvatar))
             return '';
         // I only do it for FB users
-        var match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
-        if (!match)
-            return '';
-        var myFbUserId = match[1];
+        var myFbUserId = getFbUserId(myAvatar);
         return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");
     }
     game.getBoardAvatar = getBoardAvatar;
+    function getFbUserId(avatarImageUrl) {
+        var match = avatarImageUrl.match(/graph[.]facebook[.]com[/](\w+)[/]/);
+        if (!match)
+            return '';
+        return match[1];
+    }
     function getBoardClass() {
         return game.hadLoadingError ? '' : 'transparent_board';
     }

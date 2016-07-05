@@ -49,6 +49,32 @@ module game {
     return {};
   }
 
+  function getStateForOgImage() {
+    if (!currentUpdateUI || !currentUpdateUI.move) {
+      log.warn("Got stateForOgImage without currentUpdateUI!");
+      return;
+    }
+    let state: IState = currentUpdateUI.move.endMatchScores ? currentUpdateUI.stateBeforeMove : currentUpdateUI.move.stateAfterMove;
+    let board: string[][] = state.board;
+    let boardStr: string = '';
+    for (let row = 0 ; row < 8; row++) {
+      for (let col = 0 ; col < 8; col++) {
+        // First row in state is top row, so I need to reverse rows.
+        // Also, rotating the board if I'm index=1.
+        let cell = currentUpdateUI.yourPlayerIndex == 1 ? board[row][7 - col] : board[7 - row][col];
+        if (cell == "--" || cell == "DS") {
+          boardStr += "x";
+        } else {
+          // switching white&black
+          let color = cell.substr(0, 1);
+          let kind = cell.substr(1, 1);
+          boardStr += (color == "W" ? "B" : "W") + kind;
+        }
+      }
+    }
+    return boardStr;
+  } 
+
   export function init() {
     log.alwaysLog("Checkers version 1.2");
     registerServiceWorker();
@@ -63,7 +89,8 @@ module game {
       minNumberOfPlayers: 2,
       maxNumberOfPlayers: 2,
       checkMoveOk: gameLogic.checkMoveOk,
-      updateUI: updateUI
+      updateUI: updateUI,
+      getStateForOgImage: getStateForOgImage,
     });
 
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
@@ -381,10 +408,14 @@ module game {
     let myAvatar = myPlayerInfo.avatarImageUrl;
     if (!hasAvatarImgUrl(myAvatar)) return '';
     // I only do it for FB users
-    let match = myAvatar.match(/graph[.]facebook[.]com[/](\w+)[/]/);
-    if (!match) return '';
-    let myFbUserId = match[1];
+    let myFbUserId = getFbUserId(myAvatar);
     return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");
+  }
+
+  function getFbUserId(avatarImageUrl: string) {
+    let match = avatarImageUrl.match(/graph[.]facebook[.]com[/](\w+)[/]/);
+    if (!match) return '';
+    return match[1];
   }
 
   export function getBoardClass() {

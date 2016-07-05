@@ -34,6 +34,7 @@ interface IGame {
   maxNumberOfPlayers: number;
   checkMoveOk(stateTransition: IStateTransition): void;
   updateUI(update: IUpdateUI): void;
+  getStateForOgImage(): string;
 }
 interface IMoveService {
   setGame(game: IGame): void;
