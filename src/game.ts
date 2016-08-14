@@ -55,6 +55,7 @@ module game {
       return;
     }
     let state: IState = currentUpdateUI.move.endMatchScores ? currentUpdateUI.stateBeforeMove : currentUpdateUI.move.stateAfterMove;
+    if (!state) return '';
     let board: string[][] = state.board;
     let boardStr: string = '';
     for (let row = 0 ; row < 8; row++) {

@@ -29,6 +29,8 @@ var game;
             return;
         }
         var state = game.currentUpdateUI.move.endMatchScores ? game.currentUpdateUI.stateBeforeMove : game.currentUpdateUI.move.stateAfterMove;
+        if (!state)
+            return '';
         var board = state.board;
         var boardStr = '';
         for (var row = 0; row < 8; row++) {
