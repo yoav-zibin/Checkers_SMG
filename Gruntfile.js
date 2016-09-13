@@ -135,7 +135,7 @@ module.exports = function(grunt) {
       },
       sw: {
         src: 'service-worker.js',
-        dest: 'dist/service-worker.js',
+        dest: 'dist/service-worker.js', // I can also use uglify with a banner (to add a timestamp), but the file is so small it's not worth the complexity.
         options: {
           process: function (content, srcpath) {
             // Adding timestamp so whenever we run grunt, we will have a new service-worker, and precache everything.
@@ -150,10 +150,12 @@ module.exports = function(grunt) {
       },
       dist: {
         // Order is important! gameLogic.js must be first because it defines myApp angular module.
-        // src: ['src/gameLogic.js', 'src/game.js', 'src/aiService.js'],
-        src: ['ts_output_readonly_do_NOT_change_manually/src/gameLogic.js',
-              'ts_output_readonly_do_NOT_change_manually/src/game.js',
-            'ts_output_readonly_do_NOT_change_manually/src/aiService.js'],
+        src: [
+          'lib/angular.js',
+          'lib/turnBasedServices.3.js',
+          'ts_output_readonly_do_NOT_change_manually/src/gameLogic.js',
+          'ts_output_readonly_do_NOT_change_manually/src/game.js',
+          'ts_output_readonly_do_NOT_change_manually/src/aiService.js'],
         dest: 'dist/js/everything.js'
       }
     },
@@ -205,8 +207,6 @@ module.exports = function(grunt) {
             "imgs/avatar_white_crown.svg",
             "imgs/avatar_black_crown.svg",
             "imgs/board.jpg",
-            'lib/angular.min.js',
-            'lib/turnBasedServices.3.min.js',
           ],
           network: [
             // I do '*' because we need to load avatars from FB and maybe other places on the web (also 'service-worker.js')

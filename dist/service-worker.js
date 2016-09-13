@@ -1,4 +1,4 @@
-// Tue Sep 13 2016 11:05:30 GMT-0400 (EDT)
+// Tue Sep 13 2016 15:14:42 GMT-0400 (EDT)
 'use strict';
 
 // The files we want to cache
@@ -15,8 +15,6 @@ var urlsToCache = [
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_white_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_black_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/board.jpg",
-  '//yoav-zibin.github.io/Checkers_SMG/dist/lib/angular.min.js',
-  '//yoav-zibin.github.io/Checkers_SMG/dist/lib/turnBasedServices.3.min.js',
 ];
 var CACHE_NAME = 'cache-v1';
 
