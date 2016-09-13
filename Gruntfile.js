@@ -205,9 +205,8 @@ module.exports = function(grunt) {
             "imgs/avatar_white_crown.svg",
             "imgs/avatar_black_crown.svg",
             "imgs/board.jpg",
-            '//yoav-zibin.github.io/angular-material-with-sourceMappingURL/angular.min.js',
-            '//yoav-zibin.github.io/emulator/dist/turnBasedServices.3.min.js',
-            '//yoav-zibin.github.io/emulator/main.css',
+            'lib/angular.min.js',
+            'lib/turnBasedServices.3.min.js',
           ],
           network: [
             // I do '*' because we need to load avatars from FB and maybe other places on the web (also 'service-worker.js')
