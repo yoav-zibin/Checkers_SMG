@@ -15,7 +15,21 @@ var urlsToCache = [
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_black_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/board.jpg",
 ];
-var CACHE_NAME = 'cache-v1';
+var CACHE_NAME = 'cache-v<REPLACE_WITH_DATE_IN_GRUNT>';
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+            cacheNames.map(function(cacheName) {
+              if (cacheName != CACHE_NAME) {
+                return caches.delete(cacheName);
+              }
+            })  
+        );
+      })
+  );
+});
 
 self.addEventListener('install', function(event) {
   // Perform install steps

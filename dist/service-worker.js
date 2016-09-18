@@ -1,4 +1,3 @@
-// Tue Sep 13 2016 15:14:42 GMT-0400 (EDT)
 'use strict';
 
 // The files we want to cache
@@ -16,7 +15,21 @@ var urlsToCache = [
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_black_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/board.jpg",
 ];
-var CACHE_NAME = 'cache-v1';
+var CACHE_NAME = 'cache-v2016-09-18T14:48:36.643Z';
+
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+      caches.keys().then(function(cacheNames) {
+        return Promise.all(
+            cacheNames.map(function(cacheName) {
+              if (cacheName != CACHE_NAME) {
+                return caches.delete(cacheName);
+              }
+            })  
+        );
+      })
+  );
+});
 
 self.addEventListener('install', function(event) {
   // Perform install steps
