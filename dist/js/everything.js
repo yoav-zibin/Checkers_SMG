@@ -30889,7 +30889,7 @@ $provide.value("$locale", {
 
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
 ;
-"use strict"; var emulatorServicesCompilationDate = "Fri Oct 28 09:42:21 EDT 2016";
+"use strict"; var emulatorServicesCompilationDate = "Wed Nov 16 17:43:17 EST 2016";
 
 ;
 var gamingPlatform;
@@ -31392,6 +31392,7 @@ var gamingPlatform;
     (function (gameService) {
         var isLocalTesting = window.parent === window ||
             window.location.search === "?test";
+        var isLocalTestCommunity = location.search.indexOf("community") !== -1;
         gameService.playMode = location.search.indexOf("onlyAIs") !== -1 ? "onlyAIs"
             : location.search.indexOf("playAgainstTheComputer") !== -1 ? "playAgainstTheComputer"
                 : location.search.indexOf("?playMode=") === 0 ? location.search.substr("?playMode=".length)
@@ -31399,6 +31400,53 @@ var gamingPlatform;
         // We verify that you call makeMove at most once for every updateUI (and only when it's your turn)
         var lastUpdateUI = null;
         var game;
+        var lastCommunityUI = null;
+        function communityUI(communityUI) {
+            lastCommunityUI = angular.copy(communityUI);
+            game.communityUI(communityUI);
+        }
+        gameService.communityUI = communityUI;
+        function communityMove(proposal, move) {
+            if (!lastCommunityUI) {
+                throw new Error("Don't call communityMove before getting communityUI.");
+            }
+            if (move) {
+                gamingPlatform.moveService.checkMove(move);
+            }
+            var wasYourTurn = lastCommunityUI.move.turnIndexAfterMove >= 0 &&
+                lastCommunityUI.yourPlayerIndex === lastCommunityUI.move.turnIndexAfterMove; // it's my turn
+            if (!wasYourTurn) {
+                throw new Error("Called communityMove when it wasn't your turn: yourPlayerIndex=" + lastCommunityUI.yourPlayerIndex + " turnIndexAfterMove=" + lastCommunityUI.move.turnIndexAfterMove);
+            }
+            var oldProposal = lastCommunityUI.playerIdToProposal[lastCommunityUI.yourPlayerInfo.playerId];
+            if (oldProposal) {
+                throw new Error("Called communityMove when yourPlayerId already made a proposal, see: " + angular.toJson(oldProposal, true));
+            }
+            if (isLocalTesting) {
+                // I'm using $timeout so it will be more like production (where we use postMessage),
+                // so the communityUI response is not sent immediately).
+                var nextCommunityUI = lastCommunityUI;
+                if (move) {
+                    nextCommunityUI.turnIndexBeforeMove = nextCommunityUI.move.turnIndexAfterMove;
+                    nextCommunityUI.stateBeforeMove = nextCommunityUI.move.stateAfterMove;
+                    nextCommunityUI.playerIdToProposal = {};
+                    nextCommunityUI.yourPlayerIndex = move.turnIndexAfterMove;
+                    nextCommunityUI.move = move;
+                }
+                else {
+                    nextCommunityUI.playerIdToProposal[nextCommunityUI.yourPlayerInfo.playerId] = proposal;
+                }
+                nextCommunityUI.yourPlayerInfo.playerId = 'playerId' + Math.random();
+                gamingPlatform.$timeout(function () {
+                    communityUI(nextCommunityUI);
+                }, 10);
+            }
+            else {
+                gamingPlatform.messageService.sendMessage({ communityMove: { proposal: proposal, move: move, lastCommunityUI: lastCommunityUI } });
+            }
+            lastCommunityUI = null;
+        }
+        gameService.communityMove = communityMove;
         function updateUI(params) {
             lastUpdateUI = angular.copy(params);
             game.updateUI(params);
@@ -31429,9 +31477,13 @@ var gamingPlatform;
             lastUpdateUI = null; // to make sure you don't call makeMove until you get the next updateUI.
         }
         gameService.makeMove = makeMove;
+        function getNumberOfPlayers() {
+            return gamingPlatform.stateService.randomFromTo(game.minNumberOfPlayers, game.maxNumberOfPlayers + 1);
+            ;
+        }
         function getPlayers() {
             var playersInfo = [];
-            var actualNumberOfPlayers = gamingPlatform.stateService.randomFromTo(game.minNumberOfPlayers, game.maxNumberOfPlayers + 1);
+            var actualNumberOfPlayers = getNumberOfPlayers();
             for (var i = 0; i < actualNumberOfPlayers; i++) {
                 var playerId = gameService.playMode === "onlyAIs" ||
                     i !== 0 && gameService.playMode === "playAgainstTheComputer" ?
@@ -31454,11 +31506,32 @@ var gamingPlatform;
                 if (w.game) {
                     w.game.isHelpModalShown = true;
                 }
-                gamingPlatform.stateService.setGame({ updateUI: updateUI, isMoveOk: game.isMoveOk });
-                gamingPlatform.stateService.initNewMatch();
-                gamingPlatform.stateService.setPlayMode(gameService.playMode);
-                gamingPlatform.stateService.setPlayers(playersInfo);
-                gamingPlatform.stateService.sendUpdateUi();
+                if (isLocalTestCommunity) {
+                    gamingPlatform.$timeout(function () { return communityUI({
+                        yourPlayerIndex: 0,
+                        yourPlayerInfo: {
+                            avatarImageUrl: "",
+                            displayName: "",
+                            playerId: "playerId" + Math.random(),
+                        },
+                        playerIdToProposal: {},
+                        numberOfPlayers: getNumberOfPlayers(),
+                        stateBeforeMove: null,
+                        turnIndexBeforeMove: 0,
+                        move: {
+                            endMatchScores: null,
+                            turnIndexAfterMove: 0,
+                            stateAfterMove: null,
+                        }
+                    }); }, 200);
+                }
+                else {
+                    gamingPlatform.stateService.setGame({ updateUI: updateUI, isMoveOk: game.isMoveOk });
+                    gamingPlatform.stateService.initNewMatch();
+                    gamingPlatform.stateService.setPlayMode(gameService.playMode);
+                    gamingPlatform.stateService.setPlayers(playersInfo);
+                    gamingPlatform.stateService.sendUpdateUi();
+                }
             }
             else {
                 gamingPlatform.messageService.addMessageListener(function (message) {
@@ -31468,6 +31541,9 @@ var gamingPlatform;
                             isMoveOkResult = { result: isMoveOkResult, isMoveOk: message.isMoveOk };
                         }
                         gamingPlatform.messageService.sendMessage({ isMoveOkResult: isMoveOkResult });
+                    }
+                    else if (message.communityUI) {
+                        communityUI(message.communityUI);
                     }
                     else if (message.updateUI) {
                         updateUI(message.updateUI);
@@ -31578,7 +31654,7 @@ var gamingPlatform;
                 stateAfterMove: move[1].set.value,
             };
         }
-        function convertNewMove(move) {
+        function checkMove(move) {
             // Do some checks: turnIndexAfterMove is -1 iff endMatchScores is not null.
             var noTurnIndexAfterMove = move.turnIndexAfterMove === -1;
             var hasEndMatchScores = !!move.endMatchScores;
@@ -31590,8 +31666,12 @@ var gamingPlatform;
                 throw new Error("Illegal move: you set endMatchScores but you didn't set turnIndexAfterMove to -1. Move=" +
                     angular.toJson(move, true));
             }
+        }
+        moveService.checkMove = checkMove;
+        function convertNewMove(move) {
+            checkMove(move);
             return [
-                hasEndMatchScores ? { endMatch: { endMatchScores: move.endMatchScores } } : { setTurn: { turnIndex: move.turnIndexAfterMove } },
+                move.endMatchScores ? { endMatch: { endMatchScores: move.endMatchScores } } : { setTurn: { turnIndex: move.turnIndexAfterMove } },
                 { set: { key: STATE_KEY, value: move.stateAfterMove } }
             ];
         }
@@ -31610,6 +31690,7 @@ var gamingPlatform;
                     gamingPlatform.log.info("Calling game.updateUI:", newParams);
                     game.updateUI(newParams);
                 },
+                communityUI: game.communityUI,
                 gotMessageFromPlatform: game.gotMessageFromPlatform,
                 getStateForOgImage: game.getStateForOgImage,
             };
@@ -31621,6 +31702,11 @@ var gamingPlatform;
             gamingPlatform.gameService.makeMove(convertNewMove(move));
         }
         moveService.makeMove = makeMove;
+        function communityMove(proposal, move) {
+            gamingPlatform.log.info("Making communityMove: proposal=", proposal, " move=", move);
+            gamingPlatform.gameService.communityMove(proposal, move);
+        }
+        moveService.communityMove = communityMove;
     })(moveService = gamingPlatform.moveService || (gamingPlatform.moveService = {}));
 })(gamingPlatform || (gamingPlatform = {}));
 //# sourceMappingURL=moveService.js.map
@@ -32971,6 +33057,8 @@ var gameLogic;
     }
     gameLogic.createMiniMove = createMiniMove;
     function createMove(board, miniMoves, turnIndexBeforeMove) {
+        if (!board)
+            board = getInitialBoard();
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;
@@ -33062,6 +33150,9 @@ var game;
     game.dndElem = null;
     // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
     game.hadLoadingError = false;
+    // For community games.
+    game.proposals = null;
+    game.yourPlayerInfo = null;
     function getTranslations() {
         return {};
     }
@@ -33109,6 +33200,7 @@ var game;
             checkMoveOk: gameLogic.checkMoveOk,
             updateUI: updateUI,
             getStateForOgImage: getStateForOgImage,
+            communityUI: communityUI,
         });
         dragAndDropService.addDragListener("gameArea", handleDragEvent);
     }
@@ -33141,6 +33233,7 @@ var game;
             // The computer makes a move one tick (0.6sec) after the animations finished, to avoid stress on the UI thread.
             clearAnimationInterval();
             maybeSendComputerMove();
+            updateCache();
             return;
         }
         var miniMove = game.remainingAnimations.shift();
@@ -33155,11 +33248,52 @@ var game;
         }
         updateCache();
     }
-    /**
-     * This method update the game's UI.
-     * @param params
-     */
-    // for drag-n-drop and ai move animations
+    function communityUI(communityUI) {
+        log.info("Game got communityUI:", communityUI);
+        // If only proposals changed, then do NOT call updateUI. Then update proposals.
+        var nextUpdateUI = {
+            playersInfo: [],
+            playMode: communityUI.yourPlayerIndex,
+            move: communityUI.move,
+            numberOfPlayers: communityUI.numberOfPlayers,
+            stateBeforeMove: communityUI.stateBeforeMove,
+            turnIndexBeforeMove: communityUI.turnIndexBeforeMove,
+            yourPlayerIndex: communityUI.yourPlayerIndex,
+        };
+        if (angular.equals(game.yourPlayerInfo, communityUI.yourPlayerInfo) &&
+            game.currentUpdateUI && angular.equals(game.currentUpdateUI, nextUpdateUI)) {
+        }
+        else {
+            // Things changed, so call updateUI.
+            updateUI(nextUpdateUI);
+        }
+        // This must be after calling updateUI, because we nullify things there (like playerIdToProposal&proposals&etc)
+        game.yourPlayerInfo = communityUI.yourPlayerInfo;
+        var playerIdToProposal = communityUI.playerIdToProposal;
+        game.didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
+        game.proposals = [];
+        for (var i = 0; i < 8; i++) {
+            game.proposals[i] = [];
+            for (var j = 0; j < 8; j++) {
+                game.proposals[i][j] = 0;
+            }
+        }
+        for (var playerId in playerIdToProposal) {
+            var proposal = playerIdToProposal[playerId];
+            var miniMoves = proposal.data;
+            var lastMiniMove = miniMoves[miniMoves.length - 1].toDelta;
+            game.proposals[lastMiniMove.row][lastMiniMove.col]++;
+        }
+        updateCache();
+    }
+    game.communityUI = communityUI;
+    function getProposal(row, col) {
+        if (game.remainingAnimations.length > 0)
+            return 0; // only show proposals after all animations.
+        var rotatedDelta = rotate({ row: row, col: col });
+        return game.proposals && game.proposals[rotatedDelta.row][rotatedDelta.col];
+    }
+    game.getProposal = getProposal;
     function updateUI(params) {
         log.info("Game got updateUI:", params);
         game.hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
@@ -33180,12 +33314,9 @@ var game;
         game.remainingAnimations = [];
         if (isFirstMove()) {
             game.board = gameLogic.getInitialBoard();
-            if (isMyTurn())
-                makeMove(gameLogic.createInitialMove());
         }
         else if (!shouldAnimate) {
             game.board = params.move.stateAfterMove.board;
-            setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
         }
         else {
             // params.stateBeforeMove is null only in the 2nd move
@@ -33198,8 +33329,8 @@ var game;
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.
             game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
-            setAnimationInterval();
         }
+        setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
         updateCache();
     }
     game.updateUI = updateUI;
@@ -33215,7 +33346,23 @@ var game;
             return;
         }
         game.didMakeMove = true;
-        moveService.makeMove(move);
+        if (!game.proposals) {
+            moveService.makeMove(move);
+        }
+        else {
+            var miniMoves = move.stateAfterMove.miniMoves;
+            var lastMiniMove = miniMoves[miniMoves.length - 1].toDelta;
+            var myProposal = {
+                data: miniMoves,
+                chatDescription: '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1),
+                playerInfo: game.yourPlayerInfo,
+            };
+            // Decide whether we make a move or not (if we have 2 other proposals supporting the same thing).
+            if (game.proposals[lastMiniMove.row][lastMiniMove.col] < 2) {
+                move = null;
+            }
+            moveService.communityMove(myProposal, move);
+        }
     }
     function isFirstMove() {
         return !game.currentUpdateUI.move.stateAfterMove;
@@ -33304,7 +33451,8 @@ var game;
             game.humanMiniMoves.push(miniMove);
             // We finished our mega-move if it's now someone elses turn or game ended.
             if (nextMove.turnIndexAfterMove !== game.currentUpdateUI.move.turnIndexAfterMove) {
-                game.lastHumanMove = nextMove = gameLogic.createMove(game.currentUpdateUI.move.stateAfterMove.board, game.humanMiniMoves, yourPlayerIndex());
+                var stateAfterMove = game.currentUpdateUI.move.stateAfterMove;
+                game.lastHumanMove = nextMove = gameLogic.createMove(stateAfterMove ? stateAfterMove.board : gameLogic.getInitialBoard(), game.humanMiniMoves, yourPlayerIndex());
                 makeMove(game.lastHumanMove);
             }
         });
@@ -33455,9 +33603,17 @@ var game;
     }
     game.getSquareClass = getSquareClass;
     function getPieceClass(row, col) {
-        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
-        if (!avatarPieceSrc)
-            return "piece";
+        var pieceSrc = game.cachedPieceSrc[row][col];
+        if (!isAvatarPiece(pieceSrc)) {
+            // Community games are never played with avatars
+            var result = 'piece';
+            var proposal = getProposal(row, col);
+            if (proposal == 1)
+                result += " isProposal1";
+            if (proposal == 2)
+                result += " isProposal2";
+            return result;
+        }
         var piece = getPiece(row, col);
         var pieceColor = gameLogic.getColor(piece);
         // Black&white are reversed in the UI because black should start.
@@ -33465,8 +33621,8 @@ var game;
     }
     game.getPieceClass = getPieceClass;
     function getAvatarPieceCrown(row, col) {
-        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
-        if (!avatarPieceSrc)
+        var pieceSrc = game.cachedPieceSrc[row][col];
+        if (!isAvatarPiece(pieceSrc))
             return '';
         var piece = getPiece(row, col);
         var pieceKind = gameLogic.getKind(piece);
@@ -33477,23 +33633,9 @@ var game;
             "imgs/avatar_white_crown.svg" : "imgs/avatar_black_crown.svg";
     }
     game.getAvatarPieceCrown = getAvatarPieceCrown;
-    function getAvatarPieceSrc(row, col) {
-        if (game.hadLoadingError)
-            return '';
-        var piece = getPiece(row, col);
-        if (piece == '--' || piece == 'DS')
-            return '';
-        var pieceColor = gameLogic.getColor(piece);
-        var pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
-        var myPlayerInfo = game.currentUpdateUI.playersInfo[pieceColorIndex];
-        if (!myPlayerInfo)
-            return '';
-        var avatarImageUrl = myPlayerInfo.avatarImageUrl;
-        return hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
-            !isLocalTesting() ? '' :
-                pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+    function isAvatarPiece(img) {
+        return img && img != bm_img && img != bk_img && img != wm_img && img != wk_img;
     }
-    game.getAvatarPieceSrc = getAvatarPieceSrc;
     var dir = 'imgs/';
     var ext = '.png';
     var bm_img = dir + 'black_man' + ext;
@@ -33501,10 +33643,26 @@ var game;
     var wm_img = dir + 'white_man' + ext;
     var wk_img = dir + 'white_cro' + ext;
     function getPieceSrc(row, col) {
-        var avatarPieceSrc = game.cachedAvatarPieceSrc[row][col];
-        if (avatarPieceSrc)
-            return avatarPieceSrc;
+        if (game.hadLoadingError)
+            return '';
         var piece = getPiece(row, col);
+        if (piece == 'DS' && getProposal(row, col) > 0)
+            piece = yourPlayerIndex() == 0 ? 'WM' : 'BM';
+        if (piece == '--' || piece == 'DS') {
+            return '';
+        }
+        var pieceColor = gameLogic.getColor(piece);
+        var pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
+        var myPlayerInfo = game.currentUpdateUI.playersInfo[pieceColorIndex];
+        if (myPlayerInfo) {
+            // Maybe use FB avatars
+            var avatarImageUrl = myPlayerInfo.avatarImageUrl;
+            var avatarPieceSrc = hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
+                !isLocalTesting() ? '' :
+                    pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+            if (avatarPieceSrc)
+                return avatarPieceSrc;
+        }
         switch (piece) {
             case 'BM':
                 return bm_img;
@@ -33646,7 +33804,6 @@ var game;
     game.cachedSquareClass = getEmpty8Arrays();
     game.cachedPieceContainerClass = getEmpty8Arrays();
     game.cachedPieceClass = getEmpty8Arrays();
-    game.cachedAvatarPieceSrc = getEmpty8Arrays(); // for more efficient computation (not used in the HTML)
     game.cachedPieceSrc = getEmpty8Arrays();
     game.cachedAvatarPieceCrown = getEmpty8Arrays();
     function getEmpty8Arrays() {
@@ -33661,11 +33818,10 @@ var game;
         game.cachedBoardClass = getBoardClass();
         for (var row = 0; row < 8; row++) {
             for (var col = 0; col < 8; col++) {
-                game.cachedAvatarPieceSrc[row][col] = getAvatarPieceSrc(row, col); // Must be first (this cache is used in other functions)
+                game.cachedPieceSrc[row][col] = getPieceSrc(row, col); // Must be first (this cache is used in other functions)
                 game.cachedSquareClass[row][col] = getSquareClass(row, col);
                 game.cachedPieceContainerClass[row][col] = getPieceContainerClass(row, col);
                 game.cachedPieceClass[row][col] = getPieceClass(row, col);
-                game.cachedPieceSrc[row][col] = getPieceSrc(row, col);
                 game.cachedAvatarPieceCrown[row][col] = getAvatarPieceCrown(row, col);
             }
         }

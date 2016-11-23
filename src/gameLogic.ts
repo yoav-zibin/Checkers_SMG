@@ -8,6 +8,7 @@ interface MiniMove {
   fromDelta: BoardDelta;
   toDelta: BoardDelta;
 }
+type IProposalData = MiniMove[];
 interface IState {
   board: Board;
   // The mini-moves (e.g., a move or a series of jumps) that led to the current board. For animation purposes.
@@ -993,6 +994,7 @@ module gameLogic {
         }
         
         export function createMove(board: Board, miniMoves: MiniMove[], turnIndexBeforeMove: number): IMove {
+          if (!board) board = getInitialBoard();
           if (miniMoves.length === 0) throw new Error("Must have at least one mini-move");
           let megaMove: IMove = null;
           for (let miniMove of miniMoves) {

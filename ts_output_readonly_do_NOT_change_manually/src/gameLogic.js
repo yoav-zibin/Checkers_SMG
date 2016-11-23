@@ -832,6 +832,8 @@ var gameLogic;
     }
     gameLogic.createMiniMove = createMiniMove;
     function createMove(board, miniMoves, turnIndexBeforeMove) {
+        if (!board)
+            board = getInitialBoard();
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;

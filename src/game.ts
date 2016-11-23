@@ -45,6 +45,10 @@ module game {
   // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
   export let hadLoadingError = false;
 
+  // For community games.
+  export let proposals: number[][] = null;
+  export let yourPlayerInfo: IPlayerInfo = null;
+
   function getTranslations(): Translations {
     return {};
   }
@@ -92,6 +96,7 @@ module game {
       checkMoveOk: gameLogic.checkMoveOk,
       updateUI: updateUI,
       getStateForOgImage: getStateForOgImage,
+      communityUI: communityUI,
     });
 
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
@@ -127,6 +132,7 @@ module game {
       // The computer makes a move one tick (0.6sec) after the animations finished, to avoid stress on the UI thread.
       clearAnimationInterval();
       maybeSendComputerMove();
+      updateCache();
       return;
     }
     let miniMove = remainingAnimations.shift();
@@ -142,11 +148,50 @@ module game {
     updateCache();
   }
 
-  /**
-   * This method update the game's UI.
-   * @param params
-   */
-  // for drag-n-drop and ai move animations
+  export function communityUI(communityUI: ICommunityUI) {
+    log.info("Game got communityUI:", communityUI);
+    // If only proposals changed, then do NOT call updateUI. Then update proposals.
+    let nextUpdateUI: IUpdateUI = {
+        playersInfo: [],
+        playMode: communityUI.yourPlayerIndex,
+        move: communityUI.move,
+        numberOfPlayers: communityUI.numberOfPlayers,
+        stateBeforeMove: communityUI.stateBeforeMove,
+        turnIndexBeforeMove: communityUI.turnIndexBeforeMove,
+        yourPlayerIndex: communityUI.yourPlayerIndex,
+      };
+    if (angular.equals(yourPlayerInfo, communityUI.yourPlayerInfo) &&
+        currentUpdateUI && angular.equals(currentUpdateUI, nextUpdateUI)) {
+      // We're not calling updateUI to avoid disrupting the player if he's in the middle of a move.
+    } else {
+      // Things changed, so call updateUI.
+      updateUI(nextUpdateUI);
+    }
+    // This must be after calling updateUI, because we nullify things there (like playerIdToProposal&proposals&etc)
+    yourPlayerInfo = communityUI.yourPlayerInfo;
+    let playerIdToProposal = communityUI.playerIdToProposal; 
+    didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
+    proposals = [];
+    for (let i = 0; i < 8; i++) {
+      proposals[i] = [];
+      for (let j = 0; j < 8; j++) {
+        proposals[i][j] = 0;
+      }
+    }
+    for (let playerId in playerIdToProposal) {
+      let proposal = playerIdToProposal[playerId];
+      let miniMoves = proposal.data;
+      let lastMiniMove = miniMoves[miniMoves.length-1].toDelta; 
+      proposals[lastMiniMove.row][lastMiniMove.col]++;
+    }
+    updateCache();
+  }
+  export function getProposal(row: number, col: number) {
+    if (remainingAnimations.length > 0) return 0; // only show proposals after all animations.
+    let rotatedDelta = rotate({row: row, col: col});
+    return proposals && proposals[rotatedDelta.row][rotatedDelta.col];
+  }
+
   export function updateUI(params: IUpdateUI): void {
     log.info("Game got updateUI:", params);
     hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
@@ -169,10 +214,8 @@ module game {
     remainingAnimations = [];
     if (isFirstMove()) {
       board = gameLogic.getInitialBoard();
-      if (isMyTurn()) makeMove(gameLogic.createInitialMove());
     } else if (!shouldAnimate) {
       board = params.move.stateAfterMove.board;
-      setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
     } else {
       // params.stateBeforeMove is null only in the 2nd move
       // (and there are no animations to show in the initial move since we're simply setting the board)
@@ -185,8 +228,8 @@ module game {
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.
       remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
-      setAnimationInterval();
     }
+    setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
     updateCache();
   }
 
@@ -202,7 +245,24 @@ module game {
       return;
     }
     didMakeMove = true;
-    moveService.makeMove(move);
+
+    if (!proposals) {
+      moveService.makeMove(move);
+    } else {
+      let miniMoves = move.stateAfterMove.miniMoves;
+      let lastMiniMove = miniMoves[miniMoves.length-1].toDelta;
+
+      let myProposal:IProposal = {
+        data: miniMoves,
+        chatDescription: '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1),
+        playerInfo: yourPlayerInfo,
+      };
+      // Decide whether we make a move or not (if we have 2 other proposals supporting the same thing).
+      if (proposals[lastMiniMove.row][lastMiniMove.col] < 2) {
+        move = null;
+      }
+      moveService.communityMove(myProposal, move);
+    }
   }
 
   function isFirstMove() {
@@ -298,8 +358,9 @@ module game {
       humanMiniMoves.push(miniMove);
       // We finished our mega-move if it's now someone elses turn or game ended.
       if (nextMove.turnIndexAfterMove !== currentUpdateUI.move.turnIndexAfterMove) {
+        let stateAfterMove = currentUpdateUI.move.stateAfterMove;
         lastHumanMove = nextMove = gameLogic.createMove(
-            currentUpdateUI.move.stateAfterMove.board,
+            stateAfterMove ? stateAfterMove.board : gameLogic.getInitialBoard(),
             humanMiniMoves, yourPlayerIndex());
         makeMove(lastHumanMove);
       }
@@ -452,8 +513,15 @@ module game {
   }
 
   export function getPieceClass(row: number, col: number) {
-    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
-    if (!avatarPieceSrc) return "piece";
+    let pieceSrc = cachedPieceSrc[row][col];
+    if (!isAvatarPiece(pieceSrc)) {
+      // Community games are never played with avatars
+      let result = 'piece';
+      let proposal = getProposal(row, col);
+      if (proposal == 1) result += " isProposal1";
+      if (proposal == 2) result += " isProposal2";
+      return result;
+    }
     let piece = getPiece(row, col);
     let pieceColor = gameLogic.getColor(piece);
     // Black&white are reversed in the UI because black should start.
@@ -461,8 +529,8 @@ module game {
   }
 
   export function getAvatarPieceCrown(row: number, col: number) {
-    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
-    if (!avatarPieceSrc) return '';
+    let pieceSrc = cachedPieceSrc[row][col];
+    if (!isAvatarPiece(pieceSrc)) return '';
     let piece = getPiece(row, col);
     let pieceKind = gameLogic.getKind(piece);
     if (pieceKind !== CONSTANTS.KING) return '';
@@ -471,19 +539,8 @@ module game {
         "imgs/avatar_white_crown.svg" : "imgs/avatar_black_crown.svg";
   }
 
-  export function getAvatarPieceSrc(row: number, col: number): string {
-    if (hadLoadingError) return '';
-    let piece = getPiece(row, col);
-    if (piece == '--' || piece == 'DS') return '';
-
-    let pieceColor = gameLogic.getColor(piece);
-    let pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
-    let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
-    if (!myPlayerInfo) return '';
-    let avatarImageUrl = myPlayerInfo.avatarImageUrl;
-    return hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
-      !isLocalTesting() ? '' :
-      pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+  function isAvatarPiece(img: string) {
+    return img && img != bm_img && img != bk_img && img != wm_img && img != wk_img;
   }
 
   let dir: string = 'imgs/';
@@ -493,11 +550,25 @@ module game {
   let wm_img = dir + 'white_man' + ext;
   let wk_img = dir + 'white_cro' + ext;
   export function getPieceSrc(row: number, col: number): string {
-    let avatarPieceSrc = cachedAvatarPieceSrc[row][col];
-    if (avatarPieceSrc) return avatarPieceSrc;
-
+    if (hadLoadingError) return '';
+    
     let piece = getPiece(row, col);
+    if (piece == 'DS' && getProposal(row, col) > 0) piece = yourPlayerIndex() == 0 ? 'WM' : 'BM';
+    if (piece == '--' || piece == 'DS') {
+      return '';
+    }
 
+    let pieceColor = gameLogic.getColor(piece);
+    let pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
+    let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
+    if (myPlayerInfo) {
+      // Maybe use FB avatars
+      let avatarImageUrl = myPlayerInfo.avatarImageUrl;
+      let avatarPieceSrc = hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
+        !isLocalTesting() ? '' :
+        pieceColorIndex == 1 ? "http://graph.facebook.com/10153589934097337/picture" : "http://graph.facebook.com/10153693068502449/picture";
+      if (avatarPieceSrc) return avatarPieceSrc;
+    }
     switch (piece) {
       case 'BM':
         return bm_img;
@@ -662,7 +733,6 @@ module game {
   export let cachedSquareClass: string[][] = getEmpty8Arrays();
   export let cachedPieceContainerClass: string[][] = getEmpty8Arrays();
   export let cachedPieceClass: string[][] = getEmpty8Arrays();
-  export let cachedAvatarPieceSrc: string[][] = getEmpty8Arrays(); // for more efficient computation (not used in the HTML)
   export let cachedPieceSrc: string[][] = getEmpty8Arrays();
   export let cachedAvatarPieceCrown: string[][] = getEmpty8Arrays();
   function getEmpty8Arrays(): string[][] {
@@ -676,12 +746,11 @@ module game {
     cachedBoardClass = getBoardClass();
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
-        cachedAvatarPieceSrc[row][col] = getAvatarPieceSrc(row, col); // Must be first (this cache is used in other functions)
+        cachedPieceSrc[row][col] = getPieceSrc(row, col); // Must be first (this cache is used in other functions)
 
         cachedSquareClass[row][col] = getSquareClass(row, col);
         cachedPieceContainerClass[row][col] = getPieceContainerClass(row, col);
         cachedPieceClass[row][col] = getPieceClass(row, col);
-        cachedPieceSrc[row][col] = getPieceSrc(row, col);
         cachedAvatarPieceCrown[row][col] = getAvatarPieceCrown(row, col);
       }
     }
