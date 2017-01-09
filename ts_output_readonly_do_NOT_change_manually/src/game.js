@@ -1,6 +1,8 @@
 ;
 var game;
 (function (game) {
+    game.$rootScope = null;
+    game.$interval = null;
     var CONSTANTS = gameLogic.CONSTANTS;
     var gameArea = null;
     // Global variables are cleared when getting updateUI.
@@ -27,11 +29,11 @@ var game;
         return {};
     }
     function getStateForOgImage() {
-        if (!game.currentUpdateUI || !game.currentUpdateUI.move) {
+        if (!game.currentUpdateUI) {
             log.warn("Got stateForOgImage without currentUpdateUI!");
             return;
         }
-        var state = game.currentUpdateUI.move.endMatchScores ? game.currentUpdateUI.stateBeforeMove : game.currentUpdateUI.move.stateAfterMove;
+        var state = game.currentUpdateUI.state;
         if (!state)
             return '';
         var board = state.board;
@@ -55,7 +57,9 @@ var game;
         return boardStr;
     }
     game.getStateForOgImage = getStateForOgImage;
-    function init() {
+    function init($rootScope_, $interval_) {
+        game.$rootScope = $rootScope_;
+        game.$interval = $interval_;
         log.alwaysLog("Checkers version 1.3");
         registerServiceWorker();
         gameArea = document.getElementById("gameArea");
@@ -64,10 +68,7 @@ var game;
         translate.setTranslations(getTranslations());
         translate.setLanguage('en');
         resizeGameAreaService.setWidthToHeight(1);
-        moveService.setGame({
-            minNumberOfPlayers: 2,
-            maxNumberOfPlayers: 2,
-            checkMoveOk: gameLogic.checkMoveOk,
+        gameService.setGame({
             updateUI: updateUI,
             getStateForOgImage: getStateForOgImage,
             communityUI: communityUI,
@@ -90,11 +91,11 @@ var game;
         }
     }
     function setAnimationInterval() {
-        game.animationInterval = $interval(advanceToNextAnimation, 700);
+        game.animationInterval = game.$interval(advanceToNextAnimation, 700);
     }
     function clearAnimationInterval() {
         if (game.animationInterval) {
-            $interval.cancel(game.animationInterval);
+            game.$interval.cancel(game.animationInterval);
             game.animationInterval = null;
         }
     }
@@ -107,11 +108,11 @@ var game;
             return;
         }
         var miniMove = game.remainingAnimations.shift();
-        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, game.currentUpdateUI.turnIndexBeforeMove);
-        game.board = iMove.stateAfterMove.board;
+        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, 1 - game.currentUpdateUI.turnIndex);
+        game.board = iMove.state.board;
         if (game.remainingAnimations.length == 0) {
             // Checking we got to the final correct board
-            var expectedBoard = game.currentUpdateUI.move.stateAfterMove.board;
+            var expectedBoard = game.currentUpdateUI.state.board;
             if (!angular.equals(game.board, expectedBoard)) {
                 throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(game.board, true));
             }
@@ -124,10 +125,10 @@ var game;
         var nextUpdateUI = {
             playersInfo: [],
             playMode: communityUI.yourPlayerIndex,
-            move: communityUI.move,
             numberOfPlayers: communityUI.numberOfPlayers,
-            stateBeforeMove: communityUI.stateBeforeMove,
-            turnIndexBeforeMove: communityUI.turnIndexBeforeMove,
+            state: communityUI.state,
+            turnIndex: communityUI.turnIndex,
+            endMatchScores: communityUI.endMatchScores,
             yourPlayerIndex: communityUI.yourPlayerIndex,
         };
         if (angular.equals(game.yourPlayerInfo, communityUI.yourPlayerInfo) &&
@@ -175,7 +176,7 @@ var game;
         // The move in multiplayer game have slightly different endMatchScores:
         // "endMatchScores":null  vs completley missing endMatchScores.
         // It's enought to check stateAfterMove anyway.
-        var shouldAnimate = !game.lastHumanMove || !angular.equals(params.move.stateAfterMove, game.lastHumanMove.stateAfterMove);
+        var shouldAnimate = !game.lastHumanMove || !angular.equals(params.state, game.lastHumanMove.state);
         // lastHumanMove = null; On purpose not nullifying it because the platform may send the same updateUI again.
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
@@ -185,20 +186,15 @@ var game;
         if (isFirstMove()) {
             game.board = gameLogic.getInitialBoard();
         }
-        else if (!shouldAnimate) {
-            game.board = params.move.stateAfterMove.board;
+        else if (!shouldAnimate || !params.state.boardBeforeMove) {
+            game.board = params.state.board;
         }
         else {
-            // params.stateBeforeMove is null only in the 2nd move
-            // (and there are no animations to show in the initial move since we're simply setting the board)
-            game.board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
-            // TODO: temporary code because I changed this logic on May 2016 (delete in August).
-            if (!params.stateBeforeMove && !angular.equals(game.board, gameLogic.getInitialBoard()))
-                game.board = gameLogic.getInitialBoard();
+            game.board = params.state.boardBeforeMove;
             // We calculate the AI move only after the animation finishes,
             // because if we call aiService now
             // then the animation will be paused until the javascript finishes.
-            game.remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
+            game.remainingAnimations = angular.copy(params.state.miniMoves);
         }
         setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
         updateCache();
@@ -217,10 +213,10 @@ var game;
         }
         game.didMakeMove = true;
         if (!game.proposals) {
-            moveService.makeMove(move);
+            gameService.makeMove(move);
         }
         else {
-            var miniMoves = move.stateAfterMove.miniMoves;
+            var miniMoves = move.state.miniMoves;
             var lastMiniMove = miniMoves[miniMoves.length - 1].toDelta;
             var myProposal = {
                 data: miniMoves,
@@ -231,11 +227,11 @@ var game;
             if (game.proposals[lastMiniMove.row][lastMiniMove.col] < 2) {
                 move = null;
             }
-            moveService.communityMove(myProposal, move);
+            gameService.communityMove(myProposal, move);
         }
     }
     function isFirstMove() {
-        return !game.currentUpdateUI.move.stateAfterMove;
+        return !game.currentUpdateUI.state;
     }
     function yourPlayerIndex() {
         return game.currentUpdateUI.yourPlayerIndex;
@@ -253,8 +249,8 @@ var game;
     }
     function isMyTurn() {
         return !game.didMakeMove &&
-            game.currentUpdateUI.move.turnIndexAfterMove >= 0 &&
-            game.currentUpdateUI.yourPlayerIndex === game.currentUpdateUI.move.turnIndexAfterMove; // it's my turn
+            game.currentUpdateUI.turnIndex >= 0 &&
+            game.currentUpdateUI.yourPlayerIndex === game.currentUpdateUI.turnIndex; // it's my turn
     }
     function getAnimationClassFromIdDiff(idDiff) {
         switch (idDiff) {
@@ -316,12 +312,12 @@ var game;
             return;
         }
         // Move is legal, make it!
-        $rootScope.$apply(function () {
-            game.board = nextMove.stateAfterMove.board;
+        game.$rootScope.$apply(function () {
+            game.board = nextMove.state.board;
             game.humanMiniMoves.push(miniMove);
             // We finished our mega-move if it's now someone elses turn or game ended.
-            if (nextMove.turnIndexAfterMove !== game.currentUpdateUI.move.turnIndexAfterMove) {
-                var stateAfterMove = game.currentUpdateUI.move.stateAfterMove;
+            if (nextMove.turnIndex !== game.currentUpdateUI.turnIndex) {
+                var stateAfterMove = game.currentUpdateUI.state;
                 game.lastHumanMove = nextMove = gameLogic.createMove(stateAfterMove ? stateAfterMove.board : gameLogic.getInitialBoard(), game.humanMiniMoves, yourPlayerIndex());
                 makeMove(game.lastHumanMove);
             }
@@ -410,7 +406,7 @@ var game;
     game.onImgError = onImgError;
     function updateCacheAndApply() {
         updateCache();
-        $rootScope.$apply();
+        game.$rootScope.$apply();
     }
     function isLocalTesting() { return location.protocol === "file:"; }
     function hasAvatarImgUrl(avatarImageUrl) {
@@ -699,8 +695,9 @@ var game;
     game.updateCache = updateCache;
 })(game || (game = {}));
 angular.module('myApp', ['gameServices'])
-    .run(function () {
-    $rootScope['game'] = game;
-    game.init();
-});
+    .run(['$rootScope', '$interval',
+    function ($rootScope, $interval) {
+        $rootScope['game'] = game;
+        game.init($rootScope, $interval);
+    }]);
 //# sourceMappingURL=game.js.map

@@ -94,7 +94,7 @@ var aiService;
      */
     function getStateScoreForIndex0(move, turnIndex) {
         // getStateValue return the score for player 1.
-        return -getStateValue(move.stateAfterMove.board, turnIndex);
+        return -getStateValue(move.state.board, turnIndex);
     }
     function addMegaJumpMoves(allPossibleMoves, board, turnIndex, from) {
         var possibleMoves = gameLogic.getJumpMoves(board, from, turnIndex);
@@ -109,10 +109,10 @@ var aiService;
                 var iMove = gameLogic.createMiniMove(currentBoard, currentPos, nextPos, turnIndex);
                 miniMove.push({ fromDelta: currentPos, toDelta: nextPos });
                 // If the turn changes, then there are no more mandatory jumps
-                if (iMove.turnIndexAfterMove !== turnIndex)
+                if (iMove.turnIndex !== turnIndex)
                     break;
                 // We need to make another jump: update currentBoard, currentPos, nextPos
-                currentBoard = iMove.stateAfterMove.board;
+                currentBoard = iMove.state.board;
                 currentPos = nextPos;
                 nextPos = gameLogic.getJumpMoves(currentBoard, nextPos, turnIndex)[0]; // Just take the first possible jump move for that jumping piece
             } while (true);
@@ -151,7 +151,7 @@ var aiService;
      * Get the next state which is extracted from the move operations.
      */
     function getNextStates(move, playerIndex) {
-        var board = move.stateAfterMove.board;
+        var board = move.state.board;
         var allPossibleMoveDeltas = getAllMoves(board, playerIndex);
         var allPossibleMoves = [];
         for (var i = 0; i < allPossibleMoveDeltas.length; i++) {
@@ -169,8 +169,8 @@ var aiService;
      * millisecondsLimit is a time limit, and maxDepth is a depth limit.
      */
     function createComputerMove(board, playerIndex, alphaBetaLimits) {
-        return alphaBetaService.alphaBetaDecision({ stateAfterMove: { board: board ? board : gameLogic.getInitialBoard(), miniMoves: [] },
-            endMatchScores: null, turnIndexAfterMove: null }, playerIndex, getNextStates, getStateScoreForIndex0, 
+        return alphaBetaService.alphaBetaDecision({ state: { board: board ? board : gameLogic.getInitialBoard(), boardBeforeMove: null, miniMoves: [] },
+            endMatchScores: null, turnIndex: null }, playerIndex, getNextStates, getStateScoreForIndex0, 
         // If you want to see debugging output in the console, then pass
         // getDebugStateToString instead of null
         null, 

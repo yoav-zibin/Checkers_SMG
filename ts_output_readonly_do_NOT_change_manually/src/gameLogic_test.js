@@ -100,49 +100,43 @@ describe('gameLogic unit tests:', function () {
         var move = aiService.createComputerMove(board, playerIndex, { maxDepth: 2 });
         var end = new Date().getMilliseconds();
         console.log("Finding AI move took " + (end - start) + " millis");
-        gameLogic.checkMoveOk({
-            turnIndexBeforeMove: playerIndex,
-            stateBeforeMove: board ? { board: board, miniMoves: [] } : null,
-            move: move,
-            numberOfPlayers: null
-        });
+        gameLogic.createMove(board, move.state.miniMoves, playerIndex);
     }
-    function expectMegaMove(isOk, turnIndexBeforeMove, boardBeforeMove, miniMoves, boardAfterMove, turnIndexAfterMove, endMatchScores) {
-        var stateTransition = {
-            turnIndexBeforeMove: turnIndexBeforeMove,
-            stateBeforeMove: boardBeforeMove ? { board: boardBeforeMove, miniMoves: [] } : null,
-            move: {
-                turnIndexAfterMove: turnIndexAfterMove,
-                endMatchScores: endMatchScores,
-                stateAfterMove: { board: boardAfterMove, miniMoves: miniMoves }
-            },
-            numberOfPlayers: null
+    function expectMegaException(turnIndexBeforeMove, boardBeforeMove, miniMoves) {
+        var didThrowException = false;
+        try {
+            gameLogic.createMove(boardBeforeMove, miniMoves, turnIndexBeforeMove);
+        }
+        catch (e) {
+            didThrowException = true;
+        }
+        if (!didThrowException) {
+            throw new Error("We expect an illegal move, but createMove didn't throw any exception!");
+        }
+    }
+    function expectException(turnIndexBeforeMove, boardBeforeMove, fromDelta, toDelta) {
+        expectMegaException(turnIndexBeforeMove, boardBeforeMove, [{ fromDelta: fromDelta, toDelta: toDelta }]);
+    }
+    function expectMegaMove(turnIndexBeforeMove, boardBeforeMove, miniMoves, boardAfterMove, turnIndexAfterMove, endMatchScores) {
+        var expectedMove = {
+            turnIndex: turnIndexAfterMove,
+            endMatchScores: endMatchScores,
+            state: {
+                board: boardAfterMove,
+                miniMoves: miniMoves,
+                boardBeforeMove: boardBeforeMove ? boardBeforeMove : gameLogic.getInitialBoard()
+            }
         };
-        if (isOk) {
-            gameLogic.checkMoveOk(stateTransition);
-            checkAiService(stateTransition.stateBeforeMove ? stateTransition.stateBeforeMove.board : null, turnIndexBeforeMove);
-        }
-        else {
-            // We expect an exception to be thrown :)
-            var didThrowException = false;
-            try {
-                gameLogic.checkMoveOk(stateTransition);
-            }
-            catch (e) {
-                didThrowException = true;
-            }
-            if (!didThrowException) {
-                throw new Error("We expect an illegal move, but checkMoveOk didn't throw any exception!");
-            }
-        }
+        var move = gameLogic.createMove(boardBeforeMove, miniMoves, turnIndexBeforeMove);
+        expect(angular.equals(move, expectedMove)).toBe(true);
     }
-    function expectMove(isOk, turnIndexBeforeMove, boardBeforeMove, fromDelta, toDelta, boardAfterMove, turnIndexAfterMove, endMatchScores) {
-        expectMegaMove(isOk, turnIndexBeforeMove, boardBeforeMove, [{ fromDelta: fromDelta, toDelta: toDelta }], boardAfterMove, turnIndexAfterMove, endMatchScores);
+    function expectMove(turnIndexBeforeMove, boardBeforeMove, fromDelta, toDelta, boardAfterMove, turnIndexAfterMove, endMatchScores) {
+        expectMegaMove(turnIndexBeforeMove, boardBeforeMove, [{ fromDelta: fromDelta, toDelta: toDelta }], boardAfterMove, turnIndexAfterMove, endMatchScores);
     }
     // White ('WM' and 'WK') is player index 0, and 0 goes first,
     // However in English draughts the black/red goes first (so in the UI I switched between white&black).
     it("[5, 4] -> [4, 5]: white regular move.", function () {
-        expectMove(OK, WHITE_TURN_INDEX, null, { row: 5, col: 4 }, { row: 4, col: 5 }, [
+        expectMove(WHITE_TURN_INDEX, null, { row: 5, col: 4 }, { row: 4, col: 5 }, [
             ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
             ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
             ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
@@ -154,7 +148,7 @@ describe('gameLogic unit tests:', function () {
         ], BLACK_TURN_INDEX, NO_ONE_WINS);
     });
     it("[2, 1] -> [3, 0]", function () {
-        expectMove(OK, BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 3, col: 0 }, [
+        expectMove(BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 3, col: 0 }, [
             ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
             ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
             ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
@@ -167,81 +161,27 @@ describe('gameLogic unit tests:', function () {
     });
     it("[2, 1] -> [3, 4]: Illegal because it can only move one square" +
         "diagonally to an adjacent unoccupied dark square.", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 3, col: 4 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'BM', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 3, col: 4 });
     });
     it("[2, 1] -> [4, 1]: Illegal because it can only move one square" +
         "diagonally to an adjacent unoccupied dark square.", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 4, col: 1 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 4, col: 1 });
     });
     it("[2, 1] -> [1, 0]: Illegal because MAN can not move backward", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 1, col: 0 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 2, col: 1 }, { row: 1, col: 0 });
     });
     it("[1, 0] -> [2, 1]: Illegal because 4 is occupied", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 1, col: 0 }, { row: 2, col: 1 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 1, col: 0 }, { row: 2, col: 1 });
     });
     it("[5, 0] -> [4, 1]: Illegal because the player can only move" +
         "his/her own pieces", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 5, col: 0 }, { row: 4, col: 1 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'WM', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 5, col: 0 }, { row: 4, col: 1 });
     });
     it("[?, ?] -> [3, 0]: Illegal because the piece does not exist", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, null, { row: 8, col: 8 }, { row: 3, col: 0 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, null, { row: 8, col: 8 }, { row: 3, col: 0 });
     });
     it("[5, 0] -> [4, 1]", function () {
-        expectMove(OK, WHITE_TURN_INDEX, secondState, { row: 5, col: 0 }, { row: 4, col: 1 }, [
+        expectMove(WHITE_TURN_INDEX, secondState, { row: 5, col: 0 }, { row: 4, col: 1 }, [
             ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
             ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
             ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
@@ -254,19 +194,10 @@ describe('gameLogic unit tests:', function () {
     });
     it("[5, 0] -> [4, 3]: Illegal because it can only move one square" +
         "diagonally to an adjacent unoccupied dark square.", function () {
-        expectMove(ILLEGAL, WHITE_TURN_INDEX, secondState, { row: 5, col: 0 }, { row: 4, col: 3 }, [
-            ['--', 'BM', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'BM', '--', 'BM', '--', 'BM', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'BM', '--', 'BM'],
-            ['BM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--'],
-            ['--', 'WM', '--', 'WM', '--', 'WM', '--', 'WM'],
-            ['WM', '--', 'WM', '--', 'WM', '--', 'WM', '--']
-        ], BLACK_TURN_INDEX, NO_ONE_WINS);
+        expectException(WHITE_TURN_INDEX, secondState, { row: 5, col: 0 }, { row: 4, col: 3 });
     });
     it("[3, 2] -> [2, 3] -> [1, 4]", function () {
-        expectMove(OK, BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 3, col: 2 }, { row: 1, col: 4 }, [
+        expectMove(BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 3, col: 2 }, { row: 1, col: 4 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'BK', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -278,7 +209,7 @@ describe('gameLogic unit tests:', function () {
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     it("[4, 5] -> [5, 4] -> [6, 3]", function () {
-        expectMove(OK, BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 4, col: 5 }, { row: 6, col: 3 }, [
+        expectMove(BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 4, col: 5 }, { row: 6, col: 3 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
@@ -290,31 +221,13 @@ describe('gameLogic unit tests:', function () {
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     it("[3, 2] -> [2, 1]: Illegal because 13 ignores the mandatory jump", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 3, col: 2 }, { row: 2, col: 1 }, [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'BK', '--', 'WM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'WK', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 3, col: 2 }, { row: 2, col: 1 });
     });
     it("[4, 5] -> [5, 6]: Illegal because 18 ignores the mandatory jump", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 4, col: 5 }, { row: 5, col: 6 }, [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'BK', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'WK', '--', 'BM', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        expectException(BLACK_TURN_INDEX, mandatoryJumpForBlack, { row: 4, col: 5 }, { row: 5, col: 6 });
     });
     it("[3, 2] -> [2, 3] -> [1, 4]", function () {
-        expectMove(OK, WHITE_TURN_INDEX, mandatoryJumpForWhite, { row: 3, col: 2 }, { row: 1, col: 4 }, [
+        expectMove(WHITE_TURN_INDEX, mandatoryJumpForWhite, { row: 3, col: 2 }, { row: 1, col: 4 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'WM', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -326,7 +239,7 @@ describe('gameLogic unit tests:', function () {
         ], BLACK_TURN_INDEX, NO_ONE_WINS);
     });
     it("Mega-move: double jump by black", function () {
-        expectMegaMove(OK, BLACK_TURN_INDEX, [
+        expectMegaMove(BLACK_TURN_INDEX, [
             ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -348,7 +261,7 @@ describe('gameLogic unit tests:', function () {
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     it("Mega-move: triple jump by white ends the game", function () {
-        expectMegaMove(OK, WHITE_TURN_INDEX, [
+        expectMegaMove(WHITE_TURN_INDEX, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'BK', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -401,7 +314,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--']
     ];
     it("[6, 1] -> [7, 0]*", function () {
-        expectMove(OK, BLACK_TURN_INDEX, crownedScenario1, { row: 6, col: 1 }, { row: 7, col: 0 }, [
+        expectMove(BLACK_TURN_INDEX, crownedScenario1, { row: 6, col: 1 }, { row: 7, col: 0 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -423,7 +336,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--']
     ];
     it("[5, 2] -> [6, 3] -> [7, 4]*", function () {
-        expectMove(OK, BLACK_TURN_INDEX, crownedScenario2, { row: 5, col: 2 }, { row: 7, col: 4 }, [
+        expectMove(BLACK_TURN_INDEX, crownedScenario2, { row: 5, col: 2 }, { row: 7, col: 4 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -435,7 +348,7 @@ describe('gameLogic unit tests:', function () {
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     it("[5, 2] -> [6, 3]: regular move", function () {
-        expectMove(OK, BLACK_TURN_INDEX, crownedScenario1, { row: 5, col: 2 }, { row: 6, col: 3 }, [
+        expectMove(BLACK_TURN_INDEX, crownedScenario1, { row: 5, col: 2 }, { row: 6, col: 3 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -443,19 +356,6 @@ describe('gameLogic unit tests:', function () {
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'BM', '--', 'BM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
-    });
-    it("[5, 2] -> [6, 3]*: Illegal because it does not move to the final" +
-        "row in order to be crowned", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, crownedScenario1, { row: 5, col: 2 }, { row: 6, col: 3 }, [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'BM', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'BM', '--', 'BK', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--']
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
@@ -490,7 +390,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[1, 2] -> [0, 3]*", function () {
-        expectMove(OK, WHITE_TURN_INDEX, crownedScenario3, { row: 1, col: 2 }, { row: 0, col: 3 }, [
+        expectMove(WHITE_TURN_INDEX, crownedScenario3, { row: 1, col: 2 }, { row: 0, col: 3 }, [
             ['--', 'DS', '--', 'WK', '--', 'DS', '--', 'BM'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
@@ -512,7 +412,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[2, 3] -> [1, 4] -> [0, 5]*", function () {
-        expectMove(OK, WHITE_TURN_INDEX, crownedScenario4, { row: 2, col: 3 }, { row: 0, col: 5 }, [
+        expectMove(WHITE_TURN_INDEX, crownedScenario4, { row: 2, col: 3 }, { row: 0, col: 5 }, [
             ['--', 'DS', '--', 'DS', '--', 'WK', '--', 'BM'],
             ['DS', '--', 'WM', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -549,7 +449,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[1, 0] -> [2, 1] -> [3, 2]", function () {
-        expectMove(OK, BLACK_TURN_INDEX, consecutiveJump, { row: 1, col: 0 }, { row: 3, col: 2 }, [
+        expectMove(BLACK_TURN_INDEX, consecutiveJump, { row: 1, col: 0 }, { row: 3, col: 2 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -559,18 +459,6 @@ describe('gameLogic unit tests:', function () {
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
         ], BLACK_TURN_INDEX, NO_ONE_WINS);
-    });
-    it("[1, 0] -> [2, 1] -> [3, 2] is illegal to set turn to white", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, consecutiveJump, { row: 1, col: 0 }, { row: 3, col: 2 }, [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'BM', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     /*
       * TERMINATE TURN WHEN MOVES TO KINGS ROW - BLACK
@@ -602,7 +490,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[5, 0] -> [6, 1] -> [7, 2]*: Test for MAN", function () {
-        expectMove(OK, BLACK_TURN_INDEX, terminateTurnAfterCrowning, { row: 5, col: 0 }, { row: 7, col: 2 }, [
+        expectMove(BLACK_TURN_INDEX, terminateTurnAfterCrowning, { row: 5, col: 0 }, { row: 7, col: 2 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -612,18 +500,6 @@ describe('gameLogic unit tests:', function () {
             ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'BK', '--', 'DS', '--', 'DS', '--']
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
-    });
-    it("[5, 0] -> [6, 1] -> [7, 2]*: can't continue jumping", function () {
-        expectMove(ILLEGAL, BLACK_TURN_INDEX, terminateTurnAfterCrowning, { row: 5, col: 0 }, { row: 7, col: 2 }, [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'WM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'BK', '--', 'DS', '--', 'DS', '--']
-        ], BLACK_TURN_INDEX, NO_ONE_WINS);
     });
     var terminateTurnAfterCrowningForKing = [
         ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -636,7 +512,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[5, 0] -> [6, 1] -> [7, 2]*: Test for KING (King can continue jump)", function () {
-        expectMove(OK, BLACK_TURN_INDEX, terminateTurnAfterCrowningForKing, { row: 5, col: 0 }, { row: 7, col: 2 }, [
+        expectMove(BLACK_TURN_INDEX, terminateTurnAfterCrowningForKing, { row: 5, col: 0 }, { row: 7, col: 2 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -673,7 +549,7 @@ describe('gameLogic unit tests:', function () {
         ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[2, 3] -> [3, 2] -> [4, 1]", function () {
-        expectMove(OK, BLACK_TURN_INDEX, endGameForBlack, { row: 2, col: 3 }, { row: 4, col: 1 }, [
+        expectMove(BLACK_TURN_INDEX, endGameForBlack, { row: 2, col: 3 }, { row: 4, col: 1 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -695,7 +571,7 @@ describe('gameLogic unit tests:', function () {
         ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--']
     ];
     it("[5, 0] -> [6, 1]: Legal because [7, 0] has no moves", function () {
-        expectMove(OK, BLACK_TURN_INDEX, endGameForBlack2, { row: 5, col: 0 }, { row: 6, col: 1 }, [
+        expectMove(BLACK_TURN_INDEX, endGameForBlack2, { row: 5, col: 0 }, { row: 6, col: 1 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -707,7 +583,7 @@ describe('gameLogic unit tests:', function () {
         ], NO_ONE_TURN, BLACK_WIN_SCORES);
     });
     it("[5, 2] -> [6, 3]: Legal but game continues", function () {
-        expectMove(OK, BLACK_TURN_INDEX, endGameForBlack2, { row: 5, col: 2 }, { row: 6, col: 3 }, [
+        expectMove(BLACK_TURN_INDEX, endGameForBlack2, { row: 5, col: 2 }, { row: 6, col: 3 }, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -719,7 +595,7 @@ describe('gameLogic unit tests:', function () {
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
     });
     it("Even if the jump ends in victory, if there are more jumps then they are mandatory", function () {
-        expectMove(OK, BLACK_TURN_INDEX, [
+        expectMove(BLACK_TURN_INDEX, [
             ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
             ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
             ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
@@ -740,7 +616,7 @@ describe('gameLogic unit tests:', function () {
         ], BLACK_TURN_INDEX, NO_ONE_WINS);
     });
     it("The same piece must do all the jumps", function () {
-        expectMegaMove(OK, BLACK_TURN_INDEX, [
+        expectMegaMove(BLACK_TURN_INDEX, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
@@ -762,7 +638,7 @@ describe('gameLogic unit tests:', function () {
             ['--', 'BM', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
         ], WHITE_TURN_INDEX, NO_ONE_WINS);
-        expectMegaMove(ILLEGAL, BLACK_TURN_INDEX, [
+        expectMegaException(BLACK_TURN_INDEX, [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
@@ -774,16 +650,7 @@ describe('gameLogic unit tests:', function () {
         ], [
             { fromDelta: { row: 2, col: 5 }, toDelta: { row: 4, col: 3 } },
             { fromDelta: { row: 4, col: 1 }, toDelta: { row: 6, col: 3 } },
-        ], [
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['WM', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
-            ['--', 'DS', '--', 'BM', '--', 'DS', '--', 'DS'],
-            ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], WHITE_TURN_INDEX, NO_ONE_WINS);
+        ]);
     });
     it('Sample game', function () {
         // Sample game: http://en.wikipedia.org/wiki/English_draughts#Sample_game
@@ -917,8 +784,8 @@ describe('gameLogic unit tests:', function () {
             var fromDelta = idToDelta(move[0]);
             var toDelta = idToDelta(move[1]);
             var m = gameLogic.createMove(board, [{ fromDelta: fromDelta, toDelta: toDelta }], turn);
-            board = m.stateAfterMove.board;
-            turn = m.turnIndexAfterMove;
+            board = m.state.board;
+            turn = m.turnIndex;
         }
         expect(angular.equals(board, expectedBoard)).toBe(true);
         expect(turn).toBe(WHITE_TURN_INDEX);

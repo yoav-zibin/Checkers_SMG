@@ -3,7 +3,7 @@ describe("aiService", function () {
         return aiService.createComputerMove(board, turnIndex, { maxDepth: 1 });
     }
     it("returns a legal regular move", function () {
-        var move = createComputerMove([
+        var boardBeforeMove = [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'BM'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -12,9 +12,10 @@ describe("aiService", function () {
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], 0);
+        ];
+        var move = createComputerMove(boardBeforeMove, 0);
         var expectedMove = {
-            stateAfterMove: {
+            state: {
                 board: [
                     ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'BM'],
                     ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
@@ -25,15 +26,16 @@ describe("aiService", function () {
                     ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
                     ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
                 ],
+                boardBeforeMove: boardBeforeMove,
                 miniMoves: [{ fromDelta: { row: 3, col: 0 }, toDelta: { row: 2, col: 1 } }]
             },
             endMatchScores: null,
-            turnIndexAfterMove: 1
+            turnIndex: 1
         };
         expect(angular.equals(move, expectedMove)).toBe(true);
     });
     it("returns a legal jump (mega) move", function () {
-        var move = createComputerMove([
+        var boardBeforeMove = [
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'BM'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
@@ -42,9 +44,10 @@ describe("aiService", function () {
             ['DS', '--', 'DS', '--', 'DS', '--', 'WM', '--'],
             ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
             ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
-        ], 1);
+        ];
+        var move = createComputerMove(boardBeforeMove, 1);
         var expectedMove = {
-            stateAfterMove: {
+            state: {
                 board: [
                     ['--', 'DS', '--', 'DS', '--', 'DS', '--', 'DS'],
                     ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--'],
@@ -55,6 +58,7 @@ describe("aiService", function () {
                     ['--', 'DS', '--', 'DS', '--', 'BM', '--', 'DS'],
                     ['DS', '--', 'DS', '--', 'DS', '--', 'DS', '--']
                 ],
+                boardBeforeMove: boardBeforeMove,
                 miniMoves: [
                     { fromDelta: { row: 0, col: 7 }, toDelta: { row: 2, col: 5 } },
                     { fromDelta: { row: 2, col: 5 }, toDelta: { row: 4, col: 7 } },
@@ -62,12 +66,12 @@ describe("aiService", function () {
                 ]
             },
             endMatchScores: [0, 1],
-            turnIndexAfterMove: -1
+            turnIndex: -1
         };
         expect(angular.equals(move, expectedMove)).toBe(true);
     });
     it("Another mega move", function () {
-        var move = createComputerMove([
+        var boardBeforeMove = [
             ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
             ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
             ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
@@ -76,9 +80,10 @@ describe("aiService", function () {
             ["DS", "--", "BM", "--", "DS", "--", "BM", "--"],
             ["--", "WM", "--", "DS", "--", "BM", "--", "DS"],
             ["WM", "--", "DS", "--", "DS", "--", "DS", "--"]
-        ], 1);
+        ];
+        var move = createComputerMove(boardBeforeMove, 1);
         var expectedMove = {
-            stateAfterMove: {
+            state: {
                 board: [
                     ["--", "DS", "--", "DS", "--", "DS", "--", "DS"],
                     ["BM", "--", "BM", "--", "DS", "--", "DS", "--"],
@@ -89,13 +94,14 @@ describe("aiService", function () {
                     ["--", "DS", "--", "DS", "--", "BM", "--", "DS"],
                     ["WM", "--", "BK", "--", "DS", "--", "DS", "--"]
                 ],
+                boardBeforeMove: boardBeforeMove,
                 miniMoves: [
                     { fromDelta: { row: 3, col: 2 }, toDelta: { row: 5, col: 0 } },
                     { fromDelta: { row: 5, col: 0 }, toDelta: { row: 7, col: 2 } },
                 ]
             },
             endMatchScores: null,
-            turnIndexAfterMove: 0
+            turnIndex: 0
         };
         expect(angular.equals(move, expectedMove)).toBe(true);
     });

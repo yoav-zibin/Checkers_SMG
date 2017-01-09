@@ -57,12 +57,47 @@ describe('Checkers E2E Test:', function () {
     console.log('\n\n\nRunning test: ', lastTest.fullName);
     checkNoErrorInLogsIntervalId = setInterval(expectEmptyBrowserLogs, 100);
     browser.get('dist/index.min.html');
+    waitForElement(element(by.id('game_iframe_0')));
+    browser.driver.switchTo().frame('game_iframe_0');
+    // It takes time for the game_iframe to load.
+    waitForElement(element(by.id('img_container_0_0')));
   });
   afterEach(()=>{
     expectEmptyBrowserLogs();
     clearInterval(checkNoErrorInLogsIntervalId);
   });
   
+  let startedExecutionTime = new Date().getTime();
+  function log(msg: string) {
+    let now = new Date().getTime();
+    console.log("After " + (now - startedExecutionTime) + " milliseconds: " + msg);
+  }
+  function error(msg: string) {
+    log(Array.prototype.slice.call(arguments).join(", "));
+    browser.pause();
+  }
+  function safePromise<T>(p: webdriver.promise.Promise<T>): webdriver.promise.Promise<T> {
+    if (!p) error("safePromise p = " + p);
+    return p.then((x:any)=>x, ()=>false);
+  }
+  function waitUntil(fn: ()=>any) {
+    browser.driver.wait(
+      fn, 10000).thenCatch(error);
+  }
+  function waitForElement(elem: protractor.ElementFinder) {
+    waitUntil(
+      ()=>safePromise(elem.isPresent()).then(
+        (isPresent)=>isPresent &&
+          safePromise(elem.isDisplayed()).then((isDisplayed)=>
+            isDisplayed && safePromise(elem.isEnabled()))));
+    expect(elem.isDisplayed()).toBe(true);
+  }
+  function waitForElementToDisappear(elem: protractor.ElementFinder) {
+    waitUntil(()=>safePromise(elem.isPresent()).then(
+        (isPresent)=>!isPresent ||
+          safePromise(elem.isDisplayed()).then((isDisplayed)=>!isDisplayed)));
+    // Element is either not present or not displayed.
+  }
 
   it('Check properly initialized', function () { 
     for (let i = 0; i < 64; i += 1) {

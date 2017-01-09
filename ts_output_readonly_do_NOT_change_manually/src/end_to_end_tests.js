@@ -58,11 +58,44 @@ describe('Checkers E2E Test:', function () {
         console.log('\n\n\nRunning test: ', lastTest.fullName);
         checkNoErrorInLogsIntervalId = setInterval(expectEmptyBrowserLogs, 100);
         browser.get('dist/index.min.html');
+        waitForElement(element(by.id('game_iframe_0')));
+        browser.driver.switchTo().frame('game_iframe_0');
+        // It takes time for the game_iframe to load.
+        waitForElement(element(by.id('img_container_0_0')));
     });
     afterEach(function () {
         expectEmptyBrowserLogs();
         clearInterval(checkNoErrorInLogsIntervalId);
     });
+    var startedExecutionTime = new Date().getTime();
+    function log(msg) {
+        var now = new Date().getTime();
+        console.log("After " + (now - startedExecutionTime) + " milliseconds: " + msg);
+    }
+    function error(msg) {
+        log(Array.prototype.slice.call(arguments).join(", "));
+        browser.pause();
+    }
+    function safePromise(p) {
+        if (!p)
+            error("safePromise p = " + p);
+        return p.then(function (x) { return x; }, function () { return false; });
+    }
+    function waitUntil(fn) {
+        browser.driver.wait(fn, 10000).thenCatch(error);
+    }
+    function waitForElement(elem) {
+        waitUntil(function () { return safePromise(elem.isPresent()).then(function (isPresent) { return isPresent &&
+            safePromise(elem.isDisplayed()).then(function (isDisplayed) {
+                return isDisplayed && safePromise(elem.isEnabled());
+            }); }); });
+        expect(elem.isDisplayed()).toBe(true);
+    }
+    function waitForElementToDisappear(elem) {
+        waitUntil(function () { return safePromise(elem.isPresent()).then(function (isPresent) { return !isPresent ||
+            safePromise(elem.isDisplayed()).then(function (isDisplayed) { return !isDisplayed; }); }); });
+        // Element is either not present or not displayed.
+    }
     it('Check properly initialized', function () {
         for (var i = 0; i < 64; i += 1) {
             var row = Math.floor(i / 8);

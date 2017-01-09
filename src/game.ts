@@ -24,6 +24,9 @@ interface MoveDeltas {
 }
 
 module game {
+  export let $rootScope: angular.IScope = null;
+  export let $interval: angular.IIntervalService = null;
+
   let CONSTANTS: any = gameLogic.CONSTANTS;
   let gameArea: HTMLElement = null;
 
@@ -54,11 +57,11 @@ module game {
   }
 
   export function getStateForOgImage() {
-    if (!currentUpdateUI || !currentUpdateUI.move) {
+    if (!currentUpdateUI) {
       log.warn("Got stateForOgImage without currentUpdateUI!");
       return;
     }
-    let state: IState = currentUpdateUI.move.endMatchScores ? currentUpdateUI.stateBeforeMove : currentUpdateUI.move.stateAfterMove;
+    let state: IState = currentUpdateUI.state;
     if (!state) return '';
     let board: string[][] = state.board;
     let boardStr: string = '';
@@ -80,7 +83,9 @@ module game {
     return boardStr;
   } 
 
-  export function init() {
+  export function init($rootScope_: angular.IScope, $interval_: angular.IIntervalService) {
+    $rootScope = $rootScope_;
+    $interval = $interval_;
     log.alwaysLog("Checkers version 1.3");
     registerServiceWorker();
     gameArea = document.getElementById("gameArea");
@@ -90,10 +95,7 @@ module game {
     translate.setLanguage('en');
 
     resizeGameAreaService.setWidthToHeight(1);
-    moveService.setGame({
-      minNumberOfPlayers: 2,
-      maxNumberOfPlayers: 2,
-      checkMoveOk: gameLogic.checkMoveOk,
+    gameService.setGame({
       updateUI: updateUI,
       getStateForOgImage: getStateForOgImage,
       communityUI: communityUI,
@@ -136,11 +138,11 @@ module game {
       return;
     }
     let miniMove = remainingAnimations.shift();
-    let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, currentUpdateUI.turnIndexBeforeMove);
-    board = iMove.stateAfterMove.board;
+    let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, 1 - currentUpdateUI.turnIndex);
+    board = iMove.state.board;
     if (remainingAnimations.length == 0) {
       // Checking we got to the final correct board
-      let expectedBoard = currentUpdateUI.move.stateAfterMove.board;
+      let expectedBoard = currentUpdateUI.state.board;
       if (!angular.equals(board, expectedBoard)) {
         throw new Error("Animations ended in a different board: expected=" + angular.toJson(expectedBoard, true) + " actual after animations=" + angular.toJson(board, true));
       }
@@ -154,10 +156,10 @@ module game {
     let nextUpdateUI: IUpdateUI = {
         playersInfo: [],
         playMode: communityUI.yourPlayerIndex,
-        move: communityUI.move,
         numberOfPlayers: communityUI.numberOfPlayers,
-        stateBeforeMove: communityUI.stateBeforeMove,
-        turnIndexBeforeMove: communityUI.turnIndexBeforeMove,
+        state: communityUI.state,
+        turnIndex: communityUI.turnIndex,
+        endMatchScores: communityUI.endMatchScores,
         yourPlayerIndex: communityUI.yourPlayerIndex,
       };
     if (angular.equals(yourPlayerInfo, communityUI.yourPlayerInfo) &&
@@ -203,7 +205,7 @@ module game {
     // The move in multiplayer game have slightly different endMatchScores:
     // "endMatchScores":null  vs completley missing endMatchScores.
     // It's enought to check stateAfterMove anyway.
-    let shouldAnimate = !lastHumanMove || !angular.equals(params.move.stateAfterMove, lastHumanMove.stateAfterMove);
+    let shouldAnimate = !lastHumanMove || !angular.equals(params.state, lastHumanMove.state);
     // lastHumanMove = null; On purpose not nullifying it because the platform may send the same updateUI again.
 
     //Rotate the board 180 degrees, hence in the point of current
@@ -214,20 +216,14 @@ module game {
     remainingAnimations = [];
     if (isFirstMove()) {
       board = gameLogic.getInitialBoard();
-    } else if (!shouldAnimate) {
-      board = params.move.stateAfterMove.board;
+    } else if (!shouldAnimate || !params.state.boardBeforeMove) {
+      board = params.state.board;
     } else {
-      // params.stateBeforeMove is null only in the 2nd move
-      // (and there are no animations to show in the initial move since we're simply setting the board)
-      board = params.stateBeforeMove ? params.stateBeforeMove.board : params.move.stateAfterMove.board;
-
-      // TODO: temporary code because I changed this logic on May 2016 (delete in August).
-      if (!params.stateBeforeMove && !angular.equals(board, gameLogic.getInitialBoard())) board = gameLogic.getInitialBoard();
-
+      board = params.state.boardBeforeMove;
       // We calculate the AI move only after the animation finishes,
       // because if we call aiService now
       // then the animation will be paused until the javascript finishes.
-      remainingAnimations = angular.copy(params.move.stateAfterMove.miniMoves);
+      remainingAnimations = angular.copy(params.state.miniMoves);
     }
     setAnimationInterval(); // I want to make the AI move in 0.6 seconds (to not pause the UI thread for too long)
     updateCache();
@@ -247,9 +243,9 @@ module game {
     didMakeMove = true;
 
     if (!proposals) {
-      moveService.makeMove(move);
+      gameService.makeMove(move);
     } else {
-      let miniMoves = move.stateAfterMove.miniMoves;
+      let miniMoves = move.state.miniMoves;
       let lastMiniMove = miniMoves[miniMoves.length-1].toDelta;
 
       let myProposal:IProposal = {
@@ -261,12 +257,12 @@ module game {
       if (proposals[lastMiniMove.row][lastMiniMove.col] < 2) {
         move = null;
       }
-      moveService.communityMove(myProposal, move);
+      gameService.communityMove(myProposal, move);
     }
   }
 
   function isFirstMove() {
-    return !currentUpdateUI.move.stateAfterMove;
+    return !currentUpdateUI.state;
   }
 
   function yourPlayerIndex() {
@@ -289,8 +285,8 @@ module game {
 
   function isMyTurn() {
     return !didMakeMove && // you can only make one move per updateUI.
-      currentUpdateUI.move.turnIndexAfterMove >= 0 && // game is ongoing
-      currentUpdateUI.yourPlayerIndex === currentUpdateUI.move.turnIndexAfterMove; // it's my turn
+      currentUpdateUI.turnIndex >= 0 && // game is ongoing
+      currentUpdateUI.yourPlayerIndex === currentUpdateUI.turnIndex; // it's my turn
   }
 
   function getAnimationClassFromIdDiff(idDiff: number) {
@@ -354,11 +350,11 @@ module game {
     }
     // Move is legal, make it!
     $rootScope.$apply(()=>{
-      board = nextMove.stateAfterMove.board;
+      board = nextMove.state.board;
       humanMiniMoves.push(miniMove);
       // We finished our mega-move if it's now someone elses turn or game ended.
-      if (nextMove.turnIndexAfterMove !== currentUpdateUI.move.turnIndexAfterMove) {
-        let stateAfterMove = currentUpdateUI.move.stateAfterMove;
+      if (nextMove.turnIndex !== currentUpdateUI.turnIndex) {
+        let stateAfterMove = currentUpdateUI.state;
         lastHumanMove = nextMove = gameLogic.createMove(
             stateAfterMove ? stateAfterMove.board : gameLogic.getInitialBoard(),
             humanMiniMoves, yourPlayerIndex());
@@ -758,7 +754,8 @@ module game {
 }
 
 angular.module('myApp', ['gameServices'])
-  .run(function () {
-    $rootScope['game'] = game;
-    game.init();
-  });
+  .run(['$rootScope', '$interval',
+    function ($rootScope: angular.IScope, $interval: angular.IIntervalService) {
+      $rootScope['game'] = game;
+      game.init($rootScope, $interval);
+    }]);

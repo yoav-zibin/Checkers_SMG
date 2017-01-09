@@ -1,3 +1,9 @@
+var gameService = gamingPlatform.gameService;
+var alphaBetaService = gamingPlatform.alphaBetaService;
+var translate = gamingPlatform.translate;
+var resizeGameAreaService = gamingPlatform.resizeGameAreaService;
+var log = gamingPlatform.log;
+var dragAndDropService = gamingPlatform.dragAndDropService;
 var gameLogic;
 (function (gameLogic) {
     gameLogic.ENUM = {
@@ -718,6 +724,7 @@ var gameLogic;
         else {
             board = angular.copy(board);
         }
+        var originalBoard = angular.copy(board);
         var isAJumpMove = false, isASimpleMove = false, possibleSimpleMoves, winner, jumpedCoord;
         var originalKind = board[fromDelta.row][fromDelta.col].substr(1);
         /*********************************************************************
@@ -799,11 +806,11 @@ var gameLogic;
         var playerHasMoreJumpMoves = isAJumpMove &&
             getJumpMoves(board, toDelta, turnIndexBeforeMove).length > 0;
         var endMatchScores;
-        var turnIndexAfterMove;
+        var turnIndex;
         if (winner !== '' && !playerHasMoreJumpMoves) {
             // Has a winner
             // Game over.
-            turnIndexAfterMove = -1;
+            turnIndex = -1;
             endMatchScores = winner === gameLogic.CONSTANTS.WHITE ? [1, 0] : [0, 1];
         }
         else {
@@ -814,78 +821,55 @@ var gameLogic;
                     // If the same piece can make any more jump moves and it does
                     // not enter the kings row, then the next turn remains
                     // unchanged.
-                    turnIndexAfterMove = turnIndexBeforeMove;
+                    turnIndex = turnIndexBeforeMove;
                 }
                 else {
                     // The piece can not make any more jump moves or it enters the
                     // kings row
-                    turnIndexAfterMove = 1 - turnIndexBeforeMove;
+                    turnIndex = 1 - turnIndexBeforeMove;
                 }
             }
             else {
                 // The next turn will be the next player's if it's a simple move.
-                turnIndexAfterMove = 1 - turnIndexBeforeMove;
+                turnIndex = 1 - turnIndexBeforeMove;
             }
         }
-        var stateAfterMove = { miniMoves: [{ fromDelta: fromDelta, toDelta: toDelta }], board: board };
-        return { endMatchScores: endMatchScores, turnIndexAfterMove: turnIndexAfterMove, stateAfterMove: stateAfterMove };
+        var state = { miniMoves: [{ fromDelta: fromDelta, toDelta: toDelta }], board: board, boardBeforeMove: originalBoard };
+        return { endMatchScores: endMatchScores, turnIndex: turnIndex, state: state };
     }
     gameLogic.createMiniMove = createMiniMove;
     function createMove(board, miniMoves, turnIndexBeforeMove) {
         if (!board)
             board = getInitialBoard();
+        var originalBoard = angular.copy(board);
         if (miniMoves.length === 0)
             throw new Error("Must have at least one mini-move");
         var megaMove = null;
+        var lastMiniMove = null;
         for (var _i = 0, miniMoves_1 = miniMoves; _i < miniMoves_1.length; _i++) {
             var miniMove = miniMoves_1[_i];
             if (megaMove) {
-                if (megaMove.turnIndexAfterMove !== turnIndexBeforeMove)
+                if (megaMove.turnIndex !== turnIndexBeforeMove)
                     throw new Error("Mini-moves must be done by the same player");
             }
+            if (lastMiniMove) {
+                if (!angular.equals(lastMiniMove.toDelta, miniMove.fromDelta))
+                    throw new Error("Mini-moves must be done with the same piece");
+            }
+            lastMiniMove = miniMove;
             megaMove = createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, turnIndexBeforeMove);
-            board = angular.copy(megaMove.stateAfterMove.board);
+            board = angular.copy(megaMove.state.board);
         }
-        megaMove.stateAfterMove.miniMoves = miniMoves;
+        megaMove.state.miniMoves = miniMoves;
+        megaMove.state.boardBeforeMove = originalBoard;
         return megaMove;
     }
     gameLogic.createMove = createMove;
     function createInitialMove() {
-        return { endMatchScores: null, turnIndexAfterMove: 0,
-            stateAfterMove: { miniMoves: [], board: getInitialBoard() } };
+        return { endMatchScores: null, turnIndex: 0,
+            state: { miniMoves: [], board: getInitialBoard(), boardBeforeMove: getInitialBoard() } };
     }
     gameLogic.createInitialMove = createInitialMove;
-    function checkMoveOk(stateTransition) {
-        // We can assume that turnIndexBeforeMove and stateBeforeMove are legal, and we need
-        // to verify that the move is OK.
-        var turnIndexBeforeMove = stateTransition.turnIndexBeforeMove;
-        var stateBeforeMove = stateTransition.stateBeforeMove;
-        var move = stateTransition.move;
-        if (!stateBeforeMove && turnIndexBeforeMove === 0 &&
-            angular.equals(createInitialMove(), move)) {
-            return;
-        }
-        var stateAfterMove = move.stateAfterMove;
-        var miniMoves = stateAfterMove.miniMoves;
-        // Checking that the same piece made all the miniMoves
-        var currentPiecePosition = null;
-        for (var _i = 0, miniMoves_2 = miniMoves; _i < miniMoves_2.length; _i++) {
-            var miniMove = miniMoves_2[_i];
-            var fromDelta = miniMove.fromDelta;
-            if (currentPiecePosition && !angular.equals(currentPiecePosition, fromDelta)) {
-                throw new Error("The same piece must make all moves, BUT currentPiecePosition=" +
-                    angular.toJson(currentPiecePosition, true) + " fromDelta=" + angular.toJson(fromDelta, true));
-            }
-            currentPiecePosition = miniMove.toDelta;
-        }
-        var board = stateBeforeMove ? stateBeforeMove.board : null;
-        var expectedMove = createMove(board, miniMoves, turnIndexBeforeMove);
-        if (!angular.equals(move, expectedMove)) {
-            throw new Error("Expected move=" + angular.toJson(expectedMove, true) +
-                ", but got stateTransition=" + angular.toJson(stateTransition, true));
-        }
-    }
-    gameLogic.checkMoveOk = checkMoveOk;
     /**
      * Return the initial board
      */
