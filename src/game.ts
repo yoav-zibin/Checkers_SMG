@@ -4,9 +4,6 @@ interface SupportedLanguages {
   el: string, fr: string,
   hi: string, es: string,
 };
-interface Translations {
-  [index: string]: SupportedLanguages;
-}
 
 interface CellSize {
   width: number;
