@@ -23,6 +23,7 @@ var game;
     // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
     game.hadLoadingError = false;
     // For community games.
+    game.currentCommunityUI = null;
     game.proposals = null;
     game.yourPlayerInfo = null;
     function getTranslations() {
@@ -120,6 +121,7 @@ var game;
         updateCache();
     }
     function communityUI(communityUI) {
+        game.currentCommunityUI = communityUI;
         log.info("Game got communityUI:", communityUI);
         // If only proposals changed, then do NOT call updateUI. Then update proposals.
         var nextUpdateUI = {
@@ -223,8 +225,8 @@ var game;
                 chatDescription: '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1),
                 playerInfo: game.yourPlayerInfo,
             };
-            // Decide whether we make a move or not (if we have 2 other proposals supporting the same thing).
-            if (game.proposals[lastMiniMove.row][lastMiniMove.col] < 2) {
+            // Decide whether we make a move or not.
+            if (game.proposals[lastMiniMove.row][lastMiniMove.col] < game.currentCommunityUI.numberOfPlayersRequiredToMove - 1) {
                 move = null;
             }
             gameService.communityMove(myProposal, move);
@@ -468,17 +470,28 @@ var game;
         return '';
     }
     game.getSquareClass = getSquareClass;
+    function getCellStyle(row, col) {
+        var count = getProposal(row, col);
+        if (!count)
+            return;
+        // proposals[row][col] is > 0
+        var countZeroBased = count - 1;
+        var maxCount = game.currentCommunityUI.numberOfPlayersRequiredToMove - 2;
+        var ratio = maxCount == 0 ? 1 : countZeroBased / maxCount; // a number between 0 and 1 (inclusive).
+        // scale will be between 0.6 and 0.8.
+        var scale = 0.6 + 0.2 * ratio;
+        // opacity between 0.5 and 0.7
+        var opacity = 0.5 + 0.2 * ratio;
+        return {
+            transform: "scale(" + scale + ", " + scale + ")",
+            opacity: "" + opacity,
+        };
+    }
+    game.getCellStyle = getCellStyle;
     function getPieceClass(row, col) {
         var pieceSrc = game.cachedPieceSrc[row][col];
         if (!isAvatarPiece(pieceSrc)) {
-            // Community games are never played with avatars
-            var result = 'piece';
-            var proposal = getProposal(row, col);
-            if (proposal == 1)
-                result += " isProposal1";
-            if (proposal == 2)
-                result += " isProposal2";
-            return result;
+            return 'piece';
         }
         var piece = getPiece(row, col);
         var pieceColor = gameLogic.getColor(piece);

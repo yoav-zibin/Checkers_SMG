@@ -35,6 +35,7 @@
             id="{{'img_container_' + row + '_' + col}}"
             class="img_container" ng-class="game.cachedPieceContainerClass[row][col]">
           <img ng-class="game.cachedPieceClass[row][col]"
+              ng-style="game.getCellStyle(row, col)"
               id="{{'e2e_test_img_' + row + '_' + col}}"
               ng-if="game.cachedPieceSrc[row][col]"
               ng-src="{{game.cachedPieceSrc[row][col]}}" 
