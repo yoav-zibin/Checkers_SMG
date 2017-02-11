@@ -23,7 +23,6 @@ var game;
     // If any of the images has a loading error, we're probably offline, so we turn off the avatar customization.
     game.hadLoadingError = false;
     // For community games.
-    game.currentCommunityUI = null;
     game.proposals = null;
     game.yourPlayerInfo = null;
     function getTranslations() {
@@ -72,7 +71,6 @@ var game;
         gameService.setGame({
             updateUI: updateUI,
             getStateForOgImage: getStateForOgImage,
-            communityUI: communityUI,
         });
         dragAndDropService.addDragListener("gameArea", handleDragEvent);
     }
@@ -120,30 +118,15 @@ var game;
         }
         updateCache();
     }
-    function communityUI(communityUI) {
-        game.currentCommunityUI = communityUI;
-        log.info("Game got communityUI:", communityUI);
-        // If only proposals changed, then do NOT call updateUI. Then update proposals.
-        var nextUpdateUI = {
-            playersInfo: [],
-            playMode: communityUI.yourPlayerIndex,
-            numberOfPlayers: communityUI.numberOfPlayers,
-            state: communityUI.state,
-            turnIndex: communityUI.turnIndex,
-            endMatchScores: communityUI.endMatchScores,
-            yourPlayerIndex: communityUI.yourPlayerIndex,
-        };
-        if (angular.equals(game.yourPlayerInfo, communityUI.yourPlayerInfo) &&
-            game.currentUpdateUI && angular.equals(game.currentUpdateUI, nextUpdateUI)) {
-        }
-        else {
-            // Things changed, so call updateUI.
-            updateUI(nextUpdateUI);
-        }
-        // This must be after calling updateUI, because we nullify things there (like playerIdToProposal&proposals&etc)
-        game.yourPlayerInfo = communityUI.yourPlayerInfo;
-        var playerIdToProposal = communityUI.playerIdToProposal;
-        game.didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
+    function getProposal(row, col) {
+        if (game.remainingAnimations.length > 0)
+            return 0; // only show proposals after all animations.
+        var rotatedDelta = rotate({ row: row, col: col });
+        return game.proposals && game.proposals[rotatedDelta.row][rotatedDelta.col];
+    }
+    game.getProposal = getProposal;
+    function updateProposals(playerIdToProposal) {
+        game.didMakeMove = !!playerIdToProposal[game.yourPlayerInfo.playerId];
         game.proposals = [];
         for (var i = 0; i < 8; i++) {
             game.proposals[i] = [];
@@ -159,19 +142,22 @@ var game;
         }
         updateCache();
     }
-    game.communityUI = communityUI;
-    function getProposal(row, col) {
-        if (game.remainingAnimations.length > 0)
-            return 0; // only show proposals after all animations.
-        var rotatedDelta = rotate({ row: row, col: col });
-        return game.proposals && game.proposals[rotatedDelta.row][rotatedDelta.col];
-    }
-    game.getProposal = getProposal;
     function updateUI(params) {
         log.info("Game got updateUI:", params);
-        game.hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
         game.didMakeMove = false; // Only one move per updateUI
+        game.yourPlayerInfo = params.yourPlayerInfo;
+        var playerIdToProposal = params.playerIdToProposal;
+        game.proposals = null;
+        if (playerIdToProposal) {
+            updateProposals(playerIdToProposal);
+            // If only proposals changed, then return.
+            // I don't want to disrupt the player if he's in the middle of a move.
+            params.playerIdToProposal = null;
+            if (game.currentUpdateUI && angular.equals(game.currentUpdateUI, params))
+                return;
+        }
         game.currentUpdateUI = params;
+        game.hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
         clearDragNDrop();
         game.humanMiniMoves = [];
         // We show animations if it's a non-human move or a move made by our opponents.
@@ -215,7 +201,7 @@ var game;
         }
         game.didMakeMove = true;
         if (!game.proposals) {
-            gameService.makeMove(move);
+            gameService.makeMove(move, null);
         }
         else {
             var miniMoves = move.state.miniMoves;
@@ -226,10 +212,10 @@ var game;
                 playerInfo: game.yourPlayerInfo,
             };
             // Decide whether we make a move or not.
-            if (game.proposals[lastMiniMove.row][lastMiniMove.col] < game.currentCommunityUI.numberOfPlayersRequiredToMove - 1) {
+            if (game.proposals[lastMiniMove.row][lastMiniMove.col] < game.currentUpdateUI.numberOfPlayersRequiredToMove - 1) {
                 move = null;
             }
-            gameService.communityMove(myProposal, move);
+            gameService.makeMove(move, myProposal);
         }
     }
     function isFirstMove() {
@@ -402,6 +388,7 @@ var game;
     function onImgError() {
         if (game.hadLoadingError)
             return;
+        log.info("had load img error");
         game.hadLoadingError = true;
         updateCacheAndApply();
     }
@@ -476,7 +463,7 @@ var game;
             return;
         // proposals[row][col] is > 0
         var countZeroBased = count - 1;
-        var maxCount = game.currentCommunityUI.numberOfPlayersRequiredToMove - 2;
+        var maxCount = game.currentUpdateUI.numberOfPlayersRequiredToMove - 2;
         var ratio = maxCount == 0 ? 1 : countZeroBased / maxCount; // a number between 0 and 1 (inclusive).
         // scale will be between 0.6 and 0.8.
         var scale = 0.6 + 0.2 * ratio;
@@ -522,18 +509,16 @@ var game;
     var wm_img = dir + 'white_man' + ext;
     var wk_img = dir + 'white_cro' + ext;
     function getPieceSrc(row, col) {
-        if (game.hadLoadingError)
-            return '';
         var piece = getPiece(row, col);
         if (piece == 'DS' && getProposal(row, col) > 0)
-            piece = yourPlayerIndex() == 0 ? 'WM' : 'BM';
+            piece = game.currentUpdateUI.turnIndex == 0 ? 'WM' : 'BM';
         if (piece == '--' || piece == 'DS') {
             return '';
         }
         var pieceColor = gameLogic.getColor(piece);
         var pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
         var myPlayerInfo = game.currentUpdateUI.playersInfo[pieceColorIndex];
-        if (myPlayerInfo) {
+        if (myPlayerInfo && !game.hadLoadingError) {
             // Maybe use FB avatars
             var avatarImageUrl = myPlayerInfo.avatarImageUrl;
             var avatarPieceSrc = hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :

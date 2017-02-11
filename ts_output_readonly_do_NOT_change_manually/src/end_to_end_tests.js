@@ -53,10 +53,8 @@ var JasmineOverrides;
 describe('Checkers E2E Test:', function () {
     browser.driver.manage().window().setSize(400, 600);
     browser.driver.manage().window().setPosition(10, 10);
-    var checkNoErrorInLogsIntervalId = null;
     beforeEach(function () {
         console.log('\n\n\nRunning test: ', lastTest.fullName);
-        checkNoErrorInLogsIntervalId = setInterval(expectEmptyBrowserLogs, 100);
         browser.get('dist/index.min.html');
         waitForElement(element(by.id('game_iframe_0')));
         browser.driver.switchTo().frame('game_iframe_0');
@@ -65,7 +63,6 @@ describe('Checkers E2E Test:', function () {
     });
     afterEach(function () {
         expectEmptyBrowserLogs();
-        clearInterval(checkNoErrorInLogsIntervalId);
     });
     var startedExecutionTime = new Date().getTime();
     function log(msg) {

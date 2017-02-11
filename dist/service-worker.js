@@ -15,7 +15,7 @@ var urlsToCache = [
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/avatar_black_crown.svg",
   "//yoav-zibin.github.io/Checkers_SMG/dist/imgs/board.jpg",
 ];
-var CACHE_NAME = 'cache-v2017-02-05T17:23:20.944Z';
+var CACHE_NAME = 'cache-v2017-02-07T21:07:50.419Z';
 
 self.addEventListener('activate', function(event) {
   event.waitUntil(

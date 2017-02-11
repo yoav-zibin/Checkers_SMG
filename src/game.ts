@@ -46,7 +46,6 @@ module game {
   export let hadLoadingError = false;
 
   // For community games.
-  export let currentCommunityUI: ICommunityUI = null;
   export let proposals: number[][] = null;
   export let yourPlayerInfo: IPlayerInfo = null;
 
@@ -96,7 +95,6 @@ module game {
     gameService.setGame({
       updateUI: updateUI,
       getStateForOgImage: getStateForOgImage,
-      communityUI: communityUI,
     });
 
     dragAndDropService.addDragListener("gameArea", handleDragEvent);
@@ -148,30 +146,14 @@ module game {
     updateCache();
   }
 
-  export function communityUI(communityUI: ICommunityUI) {
-    currentCommunityUI = communityUI;
-    log.info("Game got communityUI:", communityUI);
-    // If only proposals changed, then do NOT call updateUI. Then update proposals.
-    let nextUpdateUI: IUpdateUI = {
-        playersInfo: [],
-        playMode: communityUI.yourPlayerIndex,
-        numberOfPlayers: communityUI.numberOfPlayers,
-        state: communityUI.state,
-        turnIndex: communityUI.turnIndex,
-        endMatchScores: communityUI.endMatchScores,
-        yourPlayerIndex: communityUI.yourPlayerIndex,
-      };
-    if (angular.equals(yourPlayerInfo, communityUI.yourPlayerInfo) &&
-        currentUpdateUI && angular.equals(currentUpdateUI, nextUpdateUI)) {
-      // We're not calling updateUI to avoid disrupting the player if he's in the middle of a move.
-    } else {
-      // Things changed, so call updateUI.
-      updateUI(nextUpdateUI);
-    }
-    // This must be after calling updateUI, because we nullify things there (like playerIdToProposal&proposals&etc)
-    yourPlayerInfo = communityUI.yourPlayerInfo;
-    let playerIdToProposal = communityUI.playerIdToProposal; 
-    didMakeMove = !!playerIdToProposal[communityUI.yourPlayerInfo.playerId];
+  export function getProposal(row: number, col: number) {
+    if (remainingAnimations.length > 0) return 0; // only show proposals after all animations.
+    let rotatedDelta = rotate({row: row, col: col});
+    return proposals && proposals[rotatedDelta.row][rotatedDelta.col];
+  }
+
+  function updateProposals(playerIdToProposal: IProposals) {
+    didMakeMove = !!playerIdToProposal[yourPlayerInfo.playerId];
     proposals = [];
     for (let i = 0; i < 8; i++) {
       proposals[i] = [];
@@ -187,17 +169,23 @@ module game {
     }
     updateCache();
   }
-  export function getProposal(row: number, col: number) {
-    if (remainingAnimations.length > 0) return 0; // only show proposals after all animations.
-    let rotatedDelta = rotate({row: row, col: col});
-    return proposals && proposals[rotatedDelta.row][rotatedDelta.col];
-  }
 
   export function updateUI(params: IUpdateUI): void {
     log.info("Game got updateUI:", params);
-    hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
     didMakeMove = false; // Only one move per updateUI
+    yourPlayerInfo = params.yourPlayerInfo;
+    let playerIdToProposal = params.playerIdToProposal;
+    proposals = null;
+    if (playerIdToProposal) {
+      updateProposals(playerIdToProposal);
+      // If only proposals changed, then return.
+      // I don't want to disrupt the player if he's in the middle of a move.
+      params.playerIdToProposal = null;
+      if (currentUpdateUI && angular.equals(currentUpdateUI, params)) return;
+    }
+
     currentUpdateUI = params;
+    hadLoadingError = false; // Retrying to load avatars every updateUI (maybe we're online again...)
     clearDragNDrop();
     humanMiniMoves = [];
     // We show animations if it's a non-human move or a move made by our opponents.
@@ -242,7 +230,7 @@ module game {
     didMakeMove = true;
 
     if (!proposals) {
-      gameService.makeMove(move);
+      gameService.makeMove(move, null);
     } else {
       let miniMoves = move.state.miniMoves;
       let lastMiniMove = miniMoves[miniMoves.length-1].toDelta;
@@ -253,10 +241,10 @@ module game {
         playerInfo: yourPlayerInfo,
       };
       // Decide whether we make a move or not.
-      if (proposals[lastMiniMove.row][lastMiniMove.col] < currentCommunityUI.numberOfPlayersRequiredToMove - 1) {
+      if (proposals[lastMiniMove.row][lastMiniMove.col] < currentUpdateUI.numberOfPlayersRequiredToMove - 1) {
         move = null;
       }
-      gameService.communityMove(myProposal, move);
+      gameService.makeMove(move, myProposal);
     }
   }
 
@@ -443,6 +431,7 @@ module game {
 
   export function onImgError() {
     if (hadLoadingError) return;
+    log.info("had load img error");
     hadLoadingError = true;
     updateCacheAndApply();
   }
@@ -512,7 +501,7 @@ module game {
     if (!count) return;
     // proposals[row][col] is > 0
     let countZeroBased = count - 1;
-    let maxCount = currentCommunityUI.numberOfPlayersRequiredToMove - 2;
+    let maxCount = currentUpdateUI.numberOfPlayersRequiredToMove - 2;
     let ratio = maxCount == 0 ? 1 : countZeroBased / maxCount; // a number between 0 and 1 (inclusive).
     // scale will be between 0.6 and 0.8.
     let scale = 0.6 + 0.2 * ratio;
@@ -557,10 +546,8 @@ module game {
   let wm_img = dir + 'white_man' + ext;
   let wk_img = dir + 'white_cro' + ext;
   export function getPieceSrc(row: number, col: number): string {
-    if (hadLoadingError) return '';
-    
     let piece = getPiece(row, col);
-    if (piece == 'DS' && getProposal(row, col) > 0) piece = yourPlayerIndex() == 0 ? 'WM' : 'BM';
+    if (piece == 'DS' && getProposal(row, col) > 0) piece = currentUpdateUI.turnIndex == 0 ? 'WM' : 'BM';
     if (piece == '--' || piece == 'DS') {
       return '';
     }
@@ -568,7 +555,7 @@ module game {
     let pieceColor = gameLogic.getColor(piece);
     let pieceColorIndex = pieceColor === CONSTANTS.BLACK ? 1 : 0;
     let myPlayerInfo = currentUpdateUI.playersInfo[pieceColorIndex];
-    if (myPlayerInfo) {
+    if (myPlayerInfo && !hadLoadingError) {
       // Maybe use FB avatars
       let avatarImageUrl = myPlayerInfo.avatarImageUrl;
       let avatarPieceSrc = hasAvatarImgUrl(avatarImageUrl) ? getMaybeProxiedImgUrl(avatarImageUrl) :
