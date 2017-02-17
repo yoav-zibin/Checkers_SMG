@@ -134,7 +134,14 @@ module game {
       return;
     }
     let miniMove = remainingAnimations.shift();
-    let iMove = gameLogic.createMiniMove(board, miniMove.fromDelta, miniMove.toDelta, 1 - currentUpdateUI.turnIndex);
+    let fromDelta = miniMove.fromDelta;
+    let toDelta = miniMove.toDelta;
+    // I need to find turnIndexBeforeMove, but I can't do 
+    //     1 - currentUpdateUI.turnIndex
+    // because turnIndex might be -1 if the game ended.
+    // So I look at the color of the piece in fromDelta.
+    let turnIndexBeforeMove = board[fromDelta.row][fromDelta.col].substr(0, 1) == "W" ? 0 : 1;
+    let iMove = gameLogic.createMiniMove(board, fromDelta, toDelta, turnIndexBeforeMove);
     board = iMove.state.board;
     if (remainingAnimations.length == 0) {
       // Checking we got to the final correct board

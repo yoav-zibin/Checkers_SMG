@@ -107,7 +107,14 @@ var game;
             return;
         }
         var miniMove = game.remainingAnimations.shift();
-        var iMove = gameLogic.createMiniMove(game.board, miniMove.fromDelta, miniMove.toDelta, 1 - game.currentUpdateUI.turnIndex);
+        var fromDelta = miniMove.fromDelta;
+        var toDelta = miniMove.toDelta;
+        // I need to find turnIndexBeforeMove, but I can't do 
+        //     1 - currentUpdateUI.turnIndex
+        // because turnIndex might be -1 if the game ended.
+        // So I look at the color of the piece in fromDelta.
+        var turnIndexBeforeMove = game.board[fromDelta.row][fromDelta.col].substr(0, 1) == "W" ? 0 : 1;
+        var iMove = gameLogic.createMiniMove(game.board, fromDelta, toDelta, turnIndexBeforeMove);
         game.board = iMove.state.board;
         if (game.remainingAnimations.length == 0) {
             // Checking we got to the final correct board
