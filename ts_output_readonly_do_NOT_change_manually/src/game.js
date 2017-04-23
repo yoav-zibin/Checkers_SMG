@@ -207,22 +207,22 @@ var game;
             return;
         }
         game.didMakeMove = true;
+        var miniMoves = move.state.miniMoves;
+        var lastMiniMove = miniMoves[miniMoves.length - 1].toDelta;
+        var chatDescription = '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1);
         if (!game.proposals) {
-            gameService.makeMove(move, null);
+            gameService.makeMove(move, null, chatDescription);
         }
         else {
-            var miniMoves = move.state.miniMoves;
-            var lastMiniMove = miniMoves[miniMoves.length - 1].toDelta;
             var myProposal = {
                 data: miniMoves,
-                chatDescription: '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1),
                 playerInfo: game.yourPlayerInfo,
             };
             // Decide whether we make a move or not.
             if (game.proposals[lastMiniMove.row][lastMiniMove.col] < game.currentUpdateUI.numberOfPlayersRequiredToMove - 1) {
                 move = null;
             }
-            gameService.makeMove(move, myProposal);
+            gameService.makeMove(move, myProposal, chatDescription);
         }
     }
     function isFirstMove() {

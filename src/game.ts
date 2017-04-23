@@ -236,22 +236,21 @@ module game {
     }
     didMakeMove = true;
 
+    let miniMoves = move.state.miniMoves;
+    let lastMiniMove = miniMoves[miniMoves.length-1].toDelta;
+    let chatDescription = '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1);
     if (!proposals) {
-      gameService.makeMove(move, null);
+      gameService.makeMove(move, null, chatDescription);
     } else {
-      let miniMoves = move.state.miniMoves;
-      let lastMiniMove = miniMoves[miniMoves.length-1].toDelta;
-
       let myProposal:IProposal = {
         data: miniMoves,
-        chatDescription: '' + (lastMiniMove.row + 1) + 'x' + (lastMiniMove.col + 1),
         playerInfo: yourPlayerInfo,
       };
       // Decide whether we make a move or not.
       if (proposals[lastMiniMove.row][lastMiniMove.col] < currentUpdateUI.numberOfPlayersRequiredToMove - 1) {
         move = null;
       }
-      gameService.makeMove(move, myProposal);
+      gameService.makeMove(move, myProposal, chatDescription);
     }
   }
 
