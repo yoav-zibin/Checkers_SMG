@@ -464,7 +464,7 @@ module game {
     if (!hasAvatarImgUrl(myAvatar)) return '';
     // I only do it for FB users
     let myFbUserId = getFbUserId(myAvatar);
-    return getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");
+    return !myFbUserId ? '' : getMaybeProxiedImgUrl("http://graph.facebook.com/" + myFbUserId + "/picture?height=200&width=400");
   }
 
   function getFbUserId(avatarImageUrl: string) {
