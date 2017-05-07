@@ -175,7 +175,8 @@ var game;
         // lastHumanMove = null; On purpose not nullifying it because the platform may send the same updateUI again.
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
-        game.shouldRotateBoard = params.playMode === 1;
+        var matchType = params.matchType;
+        game.shouldRotateBoard = (matchType == "pingPongMultiplayer" || matchType == "speedMultiplayer") && params.yourPlayerIndex == 1;
         clearAnimationInterval();
         game.remainingAnimations = [];
         if (isFirstMove()) {

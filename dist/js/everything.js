@@ -30896,7 +30896,7 @@ $provide.value("$locale", {
  */
 
 ;
-"use strict"; var emulatorServicesCompilationDate = "Sun Apr 23 16:21:11 EDT 2017";
+"use strict"; var emulatorServicesCompilationDate = "Fri Apr 28 10:43:47 EDT 2017";
 
 ;
 var gamingPlatform;
@@ -31181,6 +31181,7 @@ var gamingPlatform;
                 turnIndex: 0,
                 endMatchScores: null,
                 playMode: "passAndPlay",
+                matchType: "passAndPlay",
             });
         }
         gameService.setGame = setGame;
@@ -32713,7 +32714,8 @@ var game;
         // lastHumanMove = null; On purpose not nullifying it because the platform may send the same updateUI again.
         //Rotate the board 180 degrees, hence in the point of current
         //player's view, the board always face towards him/her;
-        game.shouldRotateBoard = params.playMode === 1;
+        var matchType = params.matchType;
+        game.shouldRotateBoard = (matchType == "pingPongMultiplayer" || matchType == "speedMultiplayer") && params.yourPlayerIndex == 1;
         clearAnimationInterval();
         game.remainingAnimations = [];
         if (isFirstMove()) {

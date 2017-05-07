@@ -204,7 +204,10 @@ module game {
 
     //Rotate the board 180 degrees, hence in the point of current
     //player's view, the board always face towards him/her;
-    shouldRotateBoard = params.playMode === 1;
+    let matchType = params.matchType;
+
+    
+    shouldRotateBoard = (matchType=="pingPongMultiplayer" || matchType=="speedMultiplayer") && params.yourPlayerIndex==1;
 
     clearAnimationInterval();
     remainingAnimations = [];
