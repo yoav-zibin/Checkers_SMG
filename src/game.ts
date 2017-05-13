@@ -1,8 +1,8 @@
 interface SupportedLanguages {
   en: string, iw: string,
   pt: string, zh: string,
-  el: string, fr: string,
-  hi: string, es: string,
+  fr: string,
+  es: string,
 };
 
 interface CellSize {
